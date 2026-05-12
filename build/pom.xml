@@ -1,0 +1,145 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.thingshub</groupId>
+		<artifactId>thingshub</artifactId>
+		<version>${revision}</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>build</artifactId>
+	<name>build</name>
+	<packaging>pom</packaging>
+	<description>thingshub standalone application build</description>
+	
+	<properties>
+		<maven.build.timestamp.format>yyyy</maven.build.timestamp.format>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-commons</artifactId>
+		</dependency>		
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-mqtt</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-http</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-tcp</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-gb28181</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-dashboard-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-starter</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-all</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>assemble-jar</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.parent.artifactId}-${project.parent.version}</finalName>
+							<appendAssemblyId>false</appendAssemblyId>
+							<descriptors>
+								<descriptor>assembly/assembly.xml</descriptor>
+							</descriptors>
+						</configuration>		
+					</execution>
+					<execution>
+						<id>assemble-standalone</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.parent.artifactId}-${project.parent.version}</finalName>
+							<appendAssemblyId>true</appendAssemblyId>
+		                    <tarLongFileMode>posix</tarLongFileMode>
+							<descriptors>
+								<descriptor>assembly/assembly-standalone.xml</descriptor>
+								<descriptor>assembly/assembly-standalone-windows.xml</descriptor>
+							</descriptors>
+						</configuration>		
+					</execution>
+				</executions>
+						
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-files</id>
+						<phase>initialize</phase>
+						<configuration>
+							<target>
+								<copy file="${project.basedir}/../thingshub-starter/src/main/resources/banner.txt" tofile="${project.build.directory}/banner.txt"/>
+								<replace file="${project.build.directory}/banner.txt" token="@thingshub.version@" value="${revision}"/>
+								<replace file="${project.build.directory}/banner.txt" token="@copyright.time@" value="${maven.build.timestamp}"/>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>delete-files</id>
+						<phase>package</phase>
+						<configuration>
+							<target>
+								<delete file="${project.build.directory}/banner.txt"/>
+								<delete file="${project.build.directory}/${project.parent.artifactId}-${project.parent.version}.jar"/>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+	</build>
+
+</project>

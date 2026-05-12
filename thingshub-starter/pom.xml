@@ -1,0 +1,69 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.thingshub</groupId>
+		<artifactId>thingshub</artifactId>
+		<version>${revision}</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>thingshub-starter</artifactId>
+	<name>thingshub-starter</name>
+	<packaging>jar</packaging>
+	<description>thingshub bootstrap</description>
+
+	<dependencies>
+		<!-- <dependency> -->
+		<!-- <groupId>org.codehaus.janino</groupId> -->
+		<!-- <artifactId>janino</artifactId> -->
+		<!-- <version>3.1.8</version> -->
+		<!-- </dependency> -->
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-core</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-mqtt</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-http</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-tcp</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-transport-gb28181</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-dashboard-server</artifactId>
+		</dependency>
+	</dependencies>
+	
+	<build>
+		<plugins>
+			<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>banner.txt</exclude>
+                        <exclude>config.yaml</exclude>
+                        <exclude>logback.xml</exclude>
+                    </excludes>
+                </configuration>
+             </plugin>
+		</plugins>
+	</build>
+
+</project>

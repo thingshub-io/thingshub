@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.thingshub</groupId>
+		<artifactId>thingshub-connector</artifactId>
+		<version>${revision}</version>
+	</parent>
+	<artifactId>thingshub-connector-tdengine</artifactId>
+	<name>thingshub-connector-tdengine</name>
+	<packaging>jar</packaging>
+	<description>Tdengine data connector</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-core</artifactId>
+		</dependency>
+	</dependencies>
+</project>

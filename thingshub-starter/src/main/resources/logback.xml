@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds" debug="false">
+	<property name="LOG_PATH" value="${thingshub.logging.path:-../log}"/>
+	<property name="DEFAULT_PATTERN" value="%d [%thread] %-5level %logger{20}[%line] - %msg%n" />
+	<property name="TRANSPORT_PATTERN" value="%d [%thread] %-5level %logger{20}[%line] - [%X{clientAddr}] [%X{clientId}] %replace(%replace(%X{streamDirection}){'UP', '=&gt;'}){'DOWN', '&lt;='} [%X{serverAddr}] [%X{msgName}] [%X{packetId}] - %msg%n" />
+	<property name="TRANSPORT_HTTP_PATTERN" value="%d [%thread] %-5level %logger{20}[%line] - [%X{clientAddr}] [%X{clientId}] [%X{serverAddr}] %msg%n" />
+	
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${DEFAULT_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/thingshub.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/thingshub-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<MaxHistory>30</MaxHistory>
+			<maxFileSize>60MB</maxFileSize>
+			<totalSizeCap>60GB</totalSizeCap>
+			<cleanHistoryOnStart>false</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${DEFAULT_PATTERN}</pattern>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+
+<!--	<appender name="LUCENE" class="io.thingshub.logging.logback.LuceneAppender">-->
+<!--		<dir>${LOG_PATH}/lucene</dir>-->
+<!--		<encoder class="io.thingshub.logging.logback.LogModelEncoder">-->
+<!--			<pattern>${DEFAULT_PATTERN}</pattern>-->
+<!--		</encoder>-->
+<!--	</appender>-->
+	
+	<appender name="TRANSPORT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${TRANSPORT_PATTERN}</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="TRANSPORT_MQTT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/thingshub-mqtt.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/thingshub-mqtt-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<MaxHistory>30</MaxHistory>
+			<maxFileSize>60MB</maxFileSize>
+			<totalSizeCap>60GB</totalSizeCap>
+			<cleanHistoryOnStart>false</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${TRANSPORT_PATTERN}</pattern>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+	
+	<appender name="TRANSPORT_TCP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/thingshub-tcp.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/thingshub-tcp-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<MaxHistory>30</MaxHistory>
+			<maxFileSize>60MB</maxFileSize>
+			<totalSizeCap>60GB</totalSizeCap>
+			<cleanHistoryOnStart>false</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${TRANSPORT_PATTERN}</pattern>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+	
+	<appender name="TRANSPORT_HTTP_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${TRANSPORT_HTTP_PATTERN}</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="TRANSPORT_HTTP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/thingshub-http.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/thingshub-http-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<MaxHistory>30</MaxHistory>
+			<maxFileSize>60MB</maxFileSize>
+			<totalSizeCap>60GB</totalSizeCap>
+			<cleanHistoryOnStart>false</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${TRANSPORT_HTTP_PATTERN}</pattern>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+	
+	<appender name="TRANSPORT_GB28181_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_PATH}/thingshub-gb28181.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/thingshub-gb28181-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+			<MaxHistory>30</MaxHistory>
+			<maxFileSize>60MB</maxFileSize>
+			<totalSizeCap>60GB</totalSizeCap>
+			<cleanHistoryOnStart>false</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${TRANSPORT_PATTERN}</pattern>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+
+	<logger name="io.thingshub.transport.mqtt" additivity="false" level="INFO">
+		<appender-ref ref="TRANSPORT_CONSOLE" />
+		<appender-ref ref="TRANSPORT_MQTT_FILE" />
+		<!-- <appender-ref ref="LUCENE" /> -->
+	</logger>
+	
+	<logger name="io.thingshub.transport.tcp" additivity="false" level="INFO">
+		<appender-ref ref="TRANSPORT_CONSOLE" />
+		<appender-ref ref="TRANSPORT_TCP_FILE" />
+		<!-- <appender-ref ref="LUCENE" /> -->
+	</logger>
+	
+	<logger name="io.thingshub.transport.gb28181" additivity="false" level="INFO">
+		<appender-ref ref="TRANSPORT_CONSOLE" />
+		<appender-ref ref="TRANSPORT_GB28181_FILE" />
+		<!-- <appender-ref ref="LUCENE" /> -->
+	</logger>
+	
+	<logger name="reactor.netty.http.server.AccessLog" additivity="false" level="INFO">
+		<appender-ref ref="TRANSPORT_HTTP_CONSOLE" />
+		<appender-ref ref="TRANSPORT_HTTP_FILE" />
+	</logger>
+	
+	<logger name="io.thingshub.transport.http" additivity="false" level="INFO">
+		<appender-ref ref="TRANSPORT_HTTP_CONSOLE" />
+		<appender-ref ref="TRANSPORT_HTTP_FILE" />
+		<!-- <appender-ref ref="LUCENE" /> -->
+	</logger>
+	
+	<logger name="io.thingshub" additivity="false" level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</logger>
+
+	<logger name="org.apache.ignite" additivity="false" level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</logger>
+
+	<logger name="org.casbin.jcasbin" additivity="false" level="ERROR">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</logger>
+
+	<logger name="reactor.netty" additivity="false" level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</logger>
+
+	<root level="info">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</root>
+
+</configuration>

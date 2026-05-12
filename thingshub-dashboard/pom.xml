@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.thingshub</groupId>
+		<artifactId>thingshub</artifactId>
+		<version>${revision}</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>thingshub-dashboard</artifactId>
+	<name>thingshub-dashboard</name>
+	<packaging>pom</packaging>
+	<description>thingshub dashboard module</description>
+
+	<modules>
+		<module>thingshub-dashboard-server</module>
+		<module>thingshub-dashboard-ui</module>
+	</modules>
+
+</project>

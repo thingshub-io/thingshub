@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.thingshub</groupId>
+		<artifactId>thingshub-transport</artifactId>
+		<version>${revision}</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>thingshub-transport-gb28181</artifactId>
+	<name>thingshub-transport-gb28181</name>
+	<packaging>jar</packaging>
+	<description>thingshub GB28181 SIP transport</description>
+
+	<dependencies>
+		<!-- 		<dependency> -->
+		<!-- 			<groupId>javax.sip</groupId> -->
+		<!-- 			<artifactId>jain-sip-ri</artifactId> -->
+		<!-- 		</dependency> -->
+		<dependency>
+			<groupId>io.sipstack</groupId>
+			<artifactId>sipstack-netty-codec-sip</artifactId>
+			<version>0.1.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-all</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!--     <dependency> -->
+		<!-- 			<groupId>io.pkts</groupId> -->
+		<!-- 			<artifactId>pkts-sip</artifactId> -->
+		<!-- 			<version>3.0.10</version> -->
+		<!-- 		</dependency> -->
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>thingshub-core</artifactId>
+		</dependency>
+	</dependencies>
+
+</project>

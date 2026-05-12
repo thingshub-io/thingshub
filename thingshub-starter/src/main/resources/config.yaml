@@ -1,0 +1,81 @@
+thingshub:   
+  logging:
+#    path: /var/log/thingshub # 默认为${THINGSHUB_HOME}/log
+    level: 
+      root: INFO
+      io.thingshub: DEBUG
+      io.thingshub.transport.mqtt: DEBUG
+      io.thingshub.transport.tcp: DEBUG
+      io.thingshub.transport.gb28181: DEBUG
+      io.thingshub.transport.http: DEBUG
+      org.apache.ignite: INFO
+    
+  node-id: 1
+  node-attributes: # 节点属性，用于在分布式计算时对节点进行分组。默认属性为thingshub
+    - thingshub 
+#  work-dir: /opt/thingshub/work # 绝对路径。默认为${THINGSHUB_HOME}/work
+#  bind: 0.0.0.0
+#  port: 10800
+    
+  transport: 
+    wiretap: true  # 二进制日志 
+#    boss-thread-size: 1
+#    worker-thread-size: 16 # work线程 默认=cpu核心数*2
+#    biz-queue-size: 100000 #业务队列 默认=100000
+#    message-max-size: 4194304 # 接收消息的最大限制 默认4194304(4M)
+#    low-water-mark: 4000000 # 不建议配置 默认 32768
+#    high-water-mark: 80000000 # 不建议配置 默认 65536
+#    global-read-write-size: 10000000,100000000  全局读写大小限制
+#    channel-read-write-size: 10000000,100000000 单个channel读写大小限制
+#    options:
+#      SO_BACKLOG: 2000
+
+    mqtt: 
+      host: 0.0.0.0
+      port: 1883
+      connect-timeout: 20 #连接超时时间。单位：秒
+      keep-alive: 300 # 保活时间。单位：秒
+#      ssl: 
+#        crt: 
+#        key: 
+#        ca: 
+      ws: 
+        port: 8883
+        path: /mqtt
+
+    tcp: 
+      host: 0.0.0.0
+      port: 5000
+      connect-timeout: 20 #连接超时时间。单位：秒
+      keep-alive: 300 # 保活时间。单位：秒
+#      ssl: 
+#        crt: 
+#        key: 
+#        ca: 
+
+    http: 
+      host: 0.0.0.0
+      port: 3880
+      access-log: true
+#      ssl: 
+#        crt: 
+#        key: 
+#        ca: 
+    
+  # 管理控制台相关配置
+  management: 
+    host: 0.0.0.0 
+    port: 18080 
+    access-log: true
+    
+    auth: 
+      ignite-servers: # 认证服务器。与平台统一认证中心集成时配置
+        - "192.168.3.198:11800"
+   
+  # 服务注册与发现‌。将thingshub注册为平台中的一个微服务或需要调用平台其它微服务时进行配置
+  registry:
+    server-addr: "127.0.0.1:8848"
+    username: nacos
+    password: nacos
+    namespace: public
+    group: DEFAULT_GROUP  
