@@ -40,16 +40,16 @@ Thingshub的具体架构如下图所示：
 通过插件与企业现有平台进行集成，作为平台的一部分
 	
 ## 4、技术栈
-[reactor-netty](https://projectreactor.io/)
-[Ignite](https://ignite.apache.org/)
-[Guice](https://github.com/google/guice)
-......
+- [reactor-netty](https://projectreactor.io/)
+- [Ignite](https://ignite.apache.org/)
+- [Guice](https://github.com/google/guice)
+- ......
 	
 ## 5、参考资料
-[MQTT-3.1.1规范](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)
-[MQTT-5.0规范](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
-[GB/T 28181-2022规范](http://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=8BBC2475624A6C31DC34A28052B3923D&request_locale=zh)
-[BifroMQ](https://bifromq.apache.org/)
+- [MQTT-3.1.1规范](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)
+- [MQTT-5.0规范](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
+- [GB/T 28181-2022规范](http://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=8BBC2475624A6C31DC34A28052B3923D&request_locale=zh)
+- [BifroMQ](https://bifromq.apache.org/)
 
 ## 6、联系方式
 wx: albert394005
