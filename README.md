@@ -50,3 +50,6 @@ Thingshub的具体架构如下图所示：
 [MQTT-5.0规范](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
 [GB/T 28181-2022规范](http://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=8BBC2475624A6C31DC34A28052B3923D&request_locale=zh)
 [BifroMQ](https://bifromq.apache.org/)
+
+## 6、联系方式
+wx: albert394005
