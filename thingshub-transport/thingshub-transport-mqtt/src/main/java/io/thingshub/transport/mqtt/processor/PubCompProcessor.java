@@ -1,7 +1,7 @@
 package io.thingshub.transport.mqtt.processor;
 
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.packet.PubCompPacket;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,10 +15,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class PubCompProcessor implements Processor<MqttChannelContextWrapper, PubCompPacket> {
+public class PubCompProcessor implements Processor<MqttChannelContext, PubCompPacket> {
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, PubCompPacket packet) {
+	public void process(MqttChannelContext ctx, PubCompPacket packet) {
 		if (log.isDebugEnabled()) {
 			log.debug("Client send PUBCOMP packet");
 		}

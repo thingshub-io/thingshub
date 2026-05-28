@@ -86,7 +86,7 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 
 	protected static final int MAX_CLIENT_ID_LENGTH = 65535;
 
-	protected final MqttTransportConfig mqttServerConfig;
+	protected final MqttTransportConfig mqttTransportConfig;
 
 	private final ResourceThrottler resourceThrottler;
 
@@ -100,8 +100,8 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 
 	private boolean isLeaving;
 
-	public MQTTConnectHandler(MqttTransportConfig mqttServerConfig) {
-		this.mqttServerConfig = mqttServerConfig;
+	public MQTTConnectHandler(MqttTransportConfig mqttTransportConfig) {
+		this.mqttTransportConfig = mqttTransportConfig;
 
 		this.sessionManager = Broker.getBean(SessionManager.class);
 		this.resourceThrottler = Broker.getBean(ResourceThrottler.class);
@@ -170,20 +170,17 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 
 				if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECTIONS)) {
 					ConnectReject rejection4ResourceThrottler = onResourceLimit(TOTAL_CONNECTIONS.name());
-					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(),
-							rejection4ResourceThrottler.goawayImmediately());
+					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(), rejection4ResourceThrottler.goawayImmediately());
 					return;
 				}
 				if (!resourceThrottler.hasResource(tenant, TOTAL_SESSION_MEMORY_BYTES)) {
 					ConnectReject rejection4ResourceThrottler = onResourceLimit(TOTAL_SESSION_MEMORY_BYTES.name());
-					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(),
-							rejection4ResourceThrottler.goawayImmediately());
+					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(), rejection4ResourceThrottler.goawayImmediately());
 					return;
 				}
 				if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECT_PER_SECOND)) {
 					ConnectReject rejection4ResourceThrottler = onResourceLimit(TOTAL_CONNECT_PER_SECOND.name());
-					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(),
-							rejection4ResourceThrottler.goawayImmediately());
+					rejectConnection(rejection4ResourceThrottler.farewell(), rejection4ResourceThrottler.reason(), rejection4ResourceThrottler.goawayImmediately());
 					return;
 				}
 
@@ -196,7 +193,7 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 
 				int keepAlive = connectMessage.variableHeader().keepAliveTimeSeconds();
 				if (keepAlive == 0) {
-					keepAlive = mqttServerConfig.getKeepAlive();
+					keepAlive = mqttTransportConfig.getKeepAlive();
 				}
 				keepAlive = Math.max(5, keepAlive);
 				keepAlive = Math.min(keepAlive, 2 * 60 * 60);// max keep alive
@@ -207,10 +204,10 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 				String clientId = connectMessage.payload().clientIdentifier();
 				ctx.channel().attr(ATTRIBUTE_CLIENT_ID).set(clientId);
 				ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).set(clientType);
-				ctx.channel().attr(ATTRIBUTE_CURRENT_SERVER_NAME).set(mqttServerConfig.getName());
+				ctx.channel().attr(ATTRIBUTE_CURRENT_SERVER_NAME).set(mqttTransportConfig.getName());
 
 				ScriptInfo transformScript = null;
-				if (clientType == ClientType.DEVICE) {
+				if (clientType == ClientType.DEVICE_CLIENT) {
 					Device device = deviceService.getBySn(clientId);
 
 					if (device != null) {
@@ -223,17 +220,14 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 					}
 				}
 
-				Condition slowdownCondition = or(DirectMemPressureCondition.INSTANCE, HeapMemPressureCondition.INSTANCE,
-						new InboundResourceCondition(resourceThrottler, tenant));
+				Condition slowdownCondition = or(DirectMemPressureCondition.INSTANCE, HeapMemPressureCondition.INSTANCE, new InboundResourceCondition(resourceThrottler, tenant));
 				SlowdownInboundHandler slowdownHandler = new SlowdownInboundHandler(slowdownCondition);
 				ctx.pipeline().addFirst(ctx.executor(), SlowdownInboundHandler.class.getSimpleName(), slowdownHandler);
 
 				MessageTransformDecoder messageTransformDecoder = Broker.getBean(MessageTransformDecoder.class);
-				ctx.pipeline().addAfter(ctx.executor(), MqttDecoder.class.getSimpleName(), MessageTransformDecoder.class.getSimpleName(),
-						messageTransformDecoder);
+				ctx.pipeline().addAfter(ctx.executor(), MqttDecoder.class.getSimpleName(), MessageTransformDecoder.class.getSimpleName(), messageTransformDecoder);
 				MessageTransformEncoder messageTransformEncoder = Broker.getBean(MessageTransformEncoder.class);
-				ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformEncoder.class.getSimpleName(),
-						messageTransformEncoder);
+				ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformEncoder.class.getSimpleName(), messageTransformEncoder);
 
 				boolean sessionPresent;
 				if (connectMessage.variableHeader().isCleanSession()) {
@@ -247,8 +241,8 @@ public abstract class MQTTConnectHandler extends ChannelDuplexHandler {
 
 				int sessionExpiryInterval = getSessionExpiryInterval(connectMessage, tenantSettings);
 				int receiveMaxium = getReceiveMaxium(connectMessage);
-				MQTTSessionHandler sessionHandler = buildSessionHandler(tenantSettings, result.clientInfo(), finalKeeplAlive, sessionPresent,
-						sessionExpiryInterval, receiveMaxium, lwt);
+				MQTTSessionHandler sessionHandler = buildSessionHandler(tenantSettings, result.clientInfo(), finalKeeplAlive, sessionPresent, sessionExpiryInterval, receiveMaxium,
+						lwt);
 				sessionHandler.onInitialized(v -> {
 					setLoggerMdc(ctx, StreamDirection.UP, MqttMessageType.CONNECT.name());
 					log.info("Client connected");

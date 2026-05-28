@@ -138,6 +138,9 @@ public class DeviceController {
 				selectedDeviceGroup.setName("默认");
 			} else {
 				selectedDeviceGroup = deviceGroupService.getByKey(params.getGroupId());
+				if (selectedDeviceGroup == null) {
+					throw new ServiceException("设备分组不存在");
+				}
 			}
 		}
 

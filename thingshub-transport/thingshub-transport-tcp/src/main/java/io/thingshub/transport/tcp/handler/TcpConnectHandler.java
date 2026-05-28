@@ -78,7 +78,7 @@ public class TcpConnectHandler extends ChannelDuplexHandler {
 
 	public static final Map<String, TcpChannelContext> CHANNEL_CONTEXTS = new ConcurrentHashMap<>();
 
-	private final TcpTransportConfig tcpServerConfig;
+	private final TcpTransportConfig tcpTransportConfig;
 
 	private final ResourceThrottler resourceThrottler;
 
@@ -86,8 +86,8 @@ public class TcpConnectHandler extends ChannelDuplexHandler {
 
 	private ChannelHandlerContext ctx;
 
-	public TcpConnectHandler(TcpTransportConfig tcpServerConfig) {
-		this.tcpServerConfig = tcpServerConfig;
+	public TcpConnectHandler(TcpTransportConfig tcpTransportConfig) {
+		this.tcpTransportConfig = tcpTransportConfig;
 
 		this.authenticator = Broker.getBean(Authenticator.class);
 		this.resourceThrottler = Broker.getBean(ResourceThrottler.class);
@@ -119,163 +119,159 @@ public class TcpConnectHandler extends ChannelDuplexHandler {
 			}
 
 			AuthRequest authRequest = buildAuthRequest(ctx.channel(), deviceSn, username, password);
-			TaskTracker.getInstance().track(CompletableFuture.supplyAsync(() -> authenticator.basicAuth(authRequest), ctx.executor()))
-					.thenAccept(authResult -> {
-						String tenant = authResult.clientInfo().tenant();
+			TaskTracker.getInstance().track(CompletableFuture.supplyAsync(() -> authenticator.basicAuth(authRequest), ctx.executor())).thenAccept(authResult -> {
+				String tenant = authResult.clientInfo().tenant();
 
-						switch (authResult.resultCode()) {
-						case OK -> {
-							if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECTIONS)) {
-								setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-								log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_CONNECTIONS);
+				switch (authResult.resultCode()) {
+				case OK -> {
+					if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECTIONS)) {
+						setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+						log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_CONNECTIONS);
 
-								ThingshubMessage farewell = new ThingshubMessage();
-								farewell.setId(thePacket.getPayload().getId());
-								farewell.setClientId(deviceSn);
-								farewell.setVersion("1.0.0");
-								farewell.setName(AUTH_ACK.name().toLowerCase());
-								farewell.setTime(DateUtil.now());
-								farewell.setCode(CONNECTION_QUOTA_EXCEEDED.code());
-								farewell.setMessage(CONNECTION_QUOTA_EXCEEDED.desc());
+						ThingshubMessage farewell = new ThingshubMessage();
+						farewell.setId(thePacket.getPayload().getId());
+						farewell.setClientId(deviceSn);
+						farewell.setVersion("1.0.0");
+						farewell.setName(AUTH_ACK.name().toLowerCase());
+						farewell.setTime(DateUtil.now());
+						farewell.setCode(CONNECTION_QUOTA_EXCEEDED.code());
+						farewell.setMessage(CONNECTION_QUOTA_EXCEEDED.desc());
 
-								closeChannel(farewell);
-								return;
-							}
-							if (!resourceThrottler.hasResource(tenant, TOTAL_SESSION_MEMORY_BYTES)) {
-								setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-								log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_SESSION_MEMORY_BYTES);
+						closeChannel(farewell);
+						return;
+					}
+					if (!resourceThrottler.hasResource(tenant, TOTAL_SESSION_MEMORY_BYTES)) {
+						setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+						log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_SESSION_MEMORY_BYTES);
 
-								ThingshubMessage farewell = new ThingshubMessage();
-								farewell.setId(thePacket.getPayload().getId());
-								farewell.setClientId(deviceSn);
-								farewell.setVersion("1.0.0");
-								farewell.setName(AUTH_ACK.name().toLowerCase());
-								farewell.setTime(DateUtil.now());
-								farewell.setCode(RESOURCE_QUOTA_EXCEEDED.code());
-								farewell.setMessage(RESOURCE_QUOTA_EXCEEDED.desc());
+						ThingshubMessage farewell = new ThingshubMessage();
+						farewell.setId(thePacket.getPayload().getId());
+						farewell.setClientId(deviceSn);
+						farewell.setVersion("1.0.0");
+						farewell.setName(AUTH_ACK.name().toLowerCase());
+						farewell.setTime(DateUtil.now());
+						farewell.setCode(RESOURCE_QUOTA_EXCEEDED.code());
+						farewell.setMessage(RESOURCE_QUOTA_EXCEEDED.desc());
 
-								closeChannel(farewell);
-								return;
-							}
-							if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECT_PER_SECOND)) {
-								setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-								log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_CONNECT_PER_SECOND);
+						closeChannel(farewell);
+						return;
+					}
+					if (!resourceThrottler.hasResource(tenant, TOTAL_CONNECT_PER_SECOND)) {
+						setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+						log.error("Tenant's resource quota exceeded. tenant: {}, resource type: {}", tenant, TOTAL_CONNECT_PER_SECOND);
 
-								ThingshubMessage farewell = new ThingshubMessage();
-								farewell.setId(thePacket.getPayload().getId());
-								farewell.setClientId(deviceSn);
-								farewell.setVersion("1.0.0");
-								farewell.setName(AUTH_ACK.name().toLowerCase());
-								farewell.setTime(DateUtil.now());
-								farewell.setCode(CONNECTION_RATE_EXCEEDED.code());
-								farewell.setMessage(CONNECTION_RATE_EXCEEDED.desc());
+						ThingshubMessage farewell = new ThingshubMessage();
+						farewell.setId(thePacket.getPayload().getId());
+						farewell.setClientId(deviceSn);
+						farewell.setVersion("1.0.0");
+						farewell.setName(AUTH_ACK.name().toLowerCase());
+						farewell.setTime(DateUtil.now());
+						farewell.setCode(CONNECTION_RATE_EXCEEDED.code());
+						farewell.setMessage(CONNECTION_RATE_EXCEEDED.desc());
 
-								closeChannel(farewell);
-								return;
-							}
+						closeChannel(farewell);
+						return;
+					}
 
-							ctx.channel().attr(ATTRIBUTE_CLIENT_ID).set(deviceSn);
-							ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).set(authResult.clientInfo().clientType());
-							ctx.channel().attr(ATTRIBUTE_CURRENT_SERVER_NAME).set(tcpServerConfig.getName());
+					ctx.channel().attr(ATTRIBUTE_CLIENT_ID).set(deviceSn);
+					ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).set(authResult.clientInfo().clientType());
+					ctx.channel().attr(ATTRIBUTE_CURRENT_SERVER_NAME).set(tcpTransportConfig.getName());
 
-							Condition slowdownCondition = or(DirectMemPressureCondition.INSTANCE, HeapMemPressureCondition.INSTANCE,
-									new InboundResourceCondition(resourceThrottler, authResult.clientInfo().tenant()));
-							SlowdownInboundHandler slowdownHandler = new SlowdownInboundHandler(slowdownCondition);
-							ctx.pipeline().addFirst(ctx.executor(), SlowdownInboundHandler.class.getSimpleName(), slowdownHandler);
+					Condition slowdownCondition = or(DirectMemPressureCondition.INSTANCE, HeapMemPressureCondition.INSTANCE,
+							new InboundResourceCondition(resourceThrottler, authResult.clientInfo().tenant()));
+					SlowdownInboundHandler slowdownHandler = new SlowdownInboundHandler(slowdownCondition);
+					ctx.pipeline().addFirst(ctx.executor(), SlowdownInboundHandler.class.getSimpleName(), slowdownHandler);
 
-							MessageTransformDecoder tcpTransformDecoder = Broker.getBean(MessageTransformDecoder.class);
-							ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformDecoder.class.getSimpleName(),
-									tcpTransformDecoder);
-							MessageTransformEncoder tcpTransformEncoder = Broker.getBean(MessageTransformEncoder.class);
-							ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformEncoder.class.getSimpleName(),
-									tcpTransformEncoder);
+					MessageTransformDecoder tcpTransformDecoder = Broker.getBean(MessageTransformDecoder.class);
+					ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformDecoder.class.getSimpleName(), tcpTransformDecoder);
+					MessageTransformEncoder tcpTransformEncoder = Broker.getBean(MessageTransformEncoder.class);
+					ctx.pipeline().addBefore(ctx.executor(), this.getClass().getSimpleName(), MessageTransformEncoder.class.getSimpleName(), tcpTransformEncoder);
 
-							int keepAlive = tcpServerConfig.getKeepAlive();
-							keepAlive = Math.max(5, keepAlive);
-							keepAlive = Math.min(keepAlive, 2 * 60 * 60);
+					int keepAlive = tcpTransportConfig.getKeepAlive();
+					keepAlive = Math.max(5, keepAlive);
+					keepAlive = Math.min(keepAlive, 2 * 60 * 60);
 
-							TenantSettings tenantSettings = TenantSettings.builder().tenant(authResult.clientInfo().tenant()).build();
-							TcpSessionHandler sessionHandler = new TcpSessionHandler(tenantSettings, authResult.clientInfo(), keepAlive);
-							sessionHandler.onInitialized(v -> {
-								setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-								log.info("Client connected");
+					TenantSettings tenantSettings = TenantSettings.builder().tenant(authResult.clientInfo().tenant()).build();
+					TcpSessionHandler sessionHandler = new TcpSessionHandler(tenantSettings, authResult.clientInfo(), keepAlive);
+					sessionHandler.onInitialized(v -> {
+						setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+						log.info("Client connected");
 
-								final AtomicReference<Boolean> connAckedRef = new AtomicReference<>(Boolean.FALSE);
+						final AtomicReference<Boolean> connAckedRef = new AtomicReference<>(Boolean.FALSE);
 
-								ThingshubMessage theReply = new ThingshubMessage();
-								theReply.setId(thePacket.getPayload().getId());
-								theReply.setClientId(deviceSn);
-								theReply.setVersion("1.0.0");
-								theReply.setName(AUTH_ACK.name().toLowerCase());
-								theReply.setTime(DateUtil.now());
-								theReply.setCode(SUCCESS.code());
-								theReply.setMessage(SUCCESS.desc());
+						ThingshubMessage theReply = new ThingshubMessage();
+						theReply.setId(thePacket.getPayload().getId());
+						theReply.setClientId(deviceSn);
+						theReply.setVersion("1.0.0");
+						theReply.setName(AUTH_ACK.name().toLowerCase());
+						theReply.setTime(DateUtil.now());
+						theReply.setCode(SUCCESS.code());
+						theReply.setMessage(SUCCESS.desc());
 
-								ctx.writeAndFlush(theReply).addListener(new ChannelFutureListener() {
+						ctx.writeAndFlush(theReply).addListener(new ChannelFutureListener() {
 
-									@Override
-									public void operationComplete(ChannelFuture future) throws Exception {
-										if (!future.isSuccess()) {
-											setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-											log.error("Server has authenticated device [{}] but failed to send the reply to device");
-											if (future.cause() != null) {
-												log.error("", future.cause());
-											}
-										} else {
-											connAckedRef.set(Boolean.TRUE);
-										}
+							@Override
+							public void operationComplete(ChannelFuture future) throws Exception {
+								if (!future.isSuccess()) {
+									setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+									log.error("Server has authenticated device [{}] but failed to send the reply to device");
+									if (future.cause() != null) {
+										log.error("", future.cause());
 									}
-								}).awaitUninterruptibly(15, TimeUnit.SECONDS);
+								} else {
+									connAckedRef.set(Boolean.TRUE);
+								}
+							}
+						}).awaitUninterruptibly(15, TimeUnit.SECONDS);
 
-								return connAckedRef.get();
-							});
-							ctx.pipeline().replace(this, TcpSessionHandler.class.getSimpleName(), sessionHandler);
-						}
-						case BAD_PASS -> {
-							ThingshubMessage badPassFarewell = new ThingshubMessage();
-							badPassFarewell.setId(thePacket.getPayload().getId());
-							badPassFarewell.setClientId(deviceSn);
-							badPassFarewell.setVersion("1.0.0");
-							badPassFarewell.setName(AUTH_ACK.name().toLowerCase());
-							badPassFarewell.setTime(DateUtil.now());
-							badPassFarewell.setCode(BAD_USER_NAME_OR_PASSWORD.code());
-							badPassFarewell.setMessage(BAD_USER_NAME_OR_PASSWORD.desc());
-
-							closeChannel(badPassFarewell);
-						}
-						case NOT_AUTHORIZED -> {
-							ThingshubMessage unauthorizedFarewell = new ThingshubMessage();
-							unauthorizedFarewell.setId(thePacket.getPayload().getId());
-							unauthorizedFarewell.setClientId(deviceSn);
-							unauthorizedFarewell.setVersion("1.0.0");
-							unauthorizedFarewell.setName(AUTH_ACK.name().toLowerCase());
-							unauthorizedFarewell.setTime(DateUtil.now());
-							unauthorizedFarewell.setCode(NOT_AUTHORIZED.code());
-							unauthorizedFarewell.setMessage(NOT_AUTHORIZED.desc());
-
-							closeChannel(unauthorizedFarewell);
-						}
-						default -> {
-							setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-							log.error("Unexpected error from auth manager, auth result: {}", authResult.resultCode().name());
-
-							ThingshubMessage farewell = new ThingshubMessage();
-							farewell.setId(thePacket.getPayload().getId());
-							farewell.setClientId(deviceSn);
-							farewell.setVersion("1.0.0");
-							farewell.setName(AUTH_ACK.name().toLowerCase());
-							farewell.setTime(DateUtil.now());
-							farewell.setCode(SERVICE_UNAVAILABLE.code());
-							farewell.setMessage(SERVICE_UNAVAILABLE.desc());
-
-							closeChannel(farewell);
-						}
-						}
+						return connAckedRef.get();
 					});
+					ctx.pipeline().replace(this, TcpSessionHandler.class.getSimpleName(), sessionHandler);
+				}
+				case BAD_PASS -> {
+					ThingshubMessage badPassFarewell = new ThingshubMessage();
+					badPassFarewell.setId(thePacket.getPayload().getId());
+					badPassFarewell.setClientId(deviceSn);
+					badPassFarewell.setVersion("1.0.0");
+					badPassFarewell.setName(AUTH_ACK.name().toLowerCase());
+					badPassFarewell.setTime(DateUtil.now());
+					badPassFarewell.setCode(BAD_USER_NAME_OR_PASSWORD.code());
+					badPassFarewell.setMessage(BAD_USER_NAME_OR_PASSWORD.desc());
+
+					closeChannel(badPassFarewell);
+				}
+				case NOT_AUTHORIZED -> {
+					ThingshubMessage unauthorizedFarewell = new ThingshubMessage();
+					unauthorizedFarewell.setId(thePacket.getPayload().getId());
+					unauthorizedFarewell.setClientId(deviceSn);
+					unauthorizedFarewell.setVersion("1.0.0");
+					unauthorizedFarewell.setName(AUTH_ACK.name().toLowerCase());
+					unauthorizedFarewell.setTime(DateUtil.now());
+					unauthorizedFarewell.setCode(NOT_AUTHORIZED.code());
+					unauthorizedFarewell.setMessage(NOT_AUTHORIZED.desc());
+
+					closeChannel(unauthorizedFarewell);
+				}
+				default -> {
+					setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
+					log.error("Unexpected error from auth manager, auth result: {}", authResult.resultCode().name());
+
+					ThingshubMessage farewell = new ThingshubMessage();
+					farewell.setId(thePacket.getPayload().getId());
+					farewell.setClientId(deviceSn);
+					farewell.setVersion("1.0.0");
+					farewell.setName(AUTH_ACK.name().toLowerCase());
+					farewell.setTime(DateUtil.now());
+					farewell.setCode(SERVICE_UNAVAILABLE.code());
+					farewell.setMessage(SERVICE_UNAVAILABLE.desc());
+
+					closeChannel(farewell);
+				}
+				}
+			});
 		} else {
 			setLoggerMdc(ctx, StreamDirection.UP, thePacket.getPayload().getId(), thePacket.getPayload().getName());
-			log.error("Before establishing a connection, device must be authenticated. Device sn: {},  message name: {}", deviceSn,
-					thePacket.getPayload().getName());
+			log.error("Before establishing a connection, device must be authenticated. Device sn: {},  message name: {}", deviceSn, thePacket.getPayload().getName());
 			closeChannel(null);
 		}
 	}

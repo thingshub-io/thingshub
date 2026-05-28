@@ -101,7 +101,7 @@ public class MQTT5SessionHandler extends MQTTSessionHandler {
 			return new ValidateMessageResult(Action.FAREWELL, MqttMessageBuilders.disconnect().reasonCode(MQTT5DisconnectReasonCode.RetainNotSupported.value()).build());
 		}
 
-		if (this.clientInfo.clientType() == ClientType.DEVICE && publishMessage.fixedHeader().qosLevel().value() > tenantSettings.getMaxMqttQoS().value()) {
+		if (this.clientInfo.clientType() == ClientType.DEVICE_CLIENT && publishMessage.fixedHeader().qosLevel().value() > tenantSettings.getMaxMqttQoS().value()) {
 			log.error("Protocol violation: QoS {} not supported [MQTT5-3.2.2-11]", publishMessage.fixedHeader().qosLevel().value());
 
 			return new ValidateMessageResult(Action.FAREWELL, MqttMessageBuilders.disconnect().reasonCode(MQTT5DisconnectReasonCode.QoSNotSupported.value()).build());

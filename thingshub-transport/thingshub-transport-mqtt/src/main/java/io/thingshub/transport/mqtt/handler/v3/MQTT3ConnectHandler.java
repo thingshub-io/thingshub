@@ -42,8 +42,8 @@ public class MQTT3ConnectHandler extends MQTTConnectHandler {
 
 	private final Authenticator authenticator;
 
-	public MQTT3ConnectHandler(MqttTransportConfig mqttServerConfig) {
-		super(mqttServerConfig);
+	public MQTT3ConnectHandler(MqttTransportConfig mqttTransportConfig) {
+		super(mqttTransportConfig);
 
 		this.authenticator = Broker.getBean(Authenticator.class);
 	}

@@ -7,7 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.transport.ChannelContextWrapper;
 
-public class MqttChannelContextWrapper extends ChannelContextWrapper {
+public class MqttChannelContext extends ChannelContextWrapper {
 
 	private final Set<Integer> packetIdsInUsing = new HashSet<>();
 
@@ -15,9 +15,9 @@ public class MqttChannelContextWrapper extends ChannelContextWrapper {
 
 	private boolean requestProblemInfo;
 
-	public MqttChannelContextWrapper(ChannelHandlerContext ctx, TenantSettings tenantSettings, String clientId, String clientAddr, int keepalive,
+	public MqttChannelContext(ChannelHandlerContext ctx, TenantSettings tenantSettings, String username, String clientId, String clientAddr, int keepalive,
 			boolean requestProblemInfo, int protocolVersion, int sessionExpiryInterval) {
-		super(ctx, tenantSettings, clientId, clientAddr, keepalive, String.valueOf(protocolVersion), sessionExpiryInterval);
+		super(ctx, tenantSettings, username, clientId, clientAddr, keepalive, String.valueOf(protocolVersion), sessionExpiryInterval);
 
 		this.requestProblemInfo = requestProblemInfo;
 	}

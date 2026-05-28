@@ -48,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MQTTPreludeHandler extends ChannelDuplexHandler {
 
-	private MqttTransportConfig mqttServerConfig;
+	private MqttTransportConfig mqttTransportConfig;
 
 	private ChannelHandlerContext ctx;
 
@@ -56,8 +56,8 @@ public class MQTTPreludeHandler extends ChannelDuplexHandler {
 
 	private ScheduledFuture<?> connectionClosingTask;
 
-	public MQTTPreludeHandler(MqttTransportConfig mqttServerConfig) {
-		this.mqttServerConfig = mqttServerConfig;
+	public MQTTPreludeHandler(MqttTransportConfig mqttTransportConfig) {
+		this.mqttTransportConfig = mqttTransportConfig;
 	}
 
 	@Override
@@ -66,7 +66,7 @@ public class MQTTPreludeHandler extends ChannelDuplexHandler {
 
 		connectionTimeoutTask = ctx.executor().schedule(() -> {
 			ctx.channel().close();
-		}, mqttServerConfig.getConnectTimeout(), TimeUnit.SECONDS);
+		}, mqttTransportConfig.getConnectTimeout(), TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -166,12 +166,12 @@ public class MQTTPreludeHandler extends ChannelDuplexHandler {
 		MqttConnectMessage connectMessage = (MqttConnectMessage) message;
 		switch (connectMessage.variableHeader().version()) {
 		case 3, 4 -> {
-			ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), MQTT3ConnectHandler.class.getSimpleName(), new MQTT3ConnectHandler(mqttServerConfig));
+			ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), MQTT3ConnectHandler.class.getSimpleName(), new MQTT3ConnectHandler(mqttTransportConfig));
 			ctx.fireChannelRead(connectMessage);
 			ctx.pipeline().remove(this.getClass().getSimpleName());
 		}
 		case 5 -> {
-			ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), MQTT5ConnectHandler.class.getSimpleName(), new MQTT5ConnectHandler(mqttServerConfig));
+			ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), MQTT5ConnectHandler.class.getSimpleName(), new MQTT5ConnectHandler(mqttTransportConfig));
 			ctx.fireChannelRead(connectMessage);
 			ctx.pipeline().remove(this.getClass().getSimpleName());
 		}

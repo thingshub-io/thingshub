@@ -23,7 +23,7 @@ import reactor.netty.DisposableServer;
 public class TcpTransportServer implements Server {
 
 	@Inject
-	private TcpTransportConfig config;
+	private TcpTransportConfig tcpTransportConfig;
 
 	private DisposableServer disposableServer;
 
@@ -34,17 +34,17 @@ public class TcpTransportServer implements Server {
 
 	@Override
 	public String name() {
-		return config.getName();
+		return tcpTransportConfig.getName();
 	}
 
 	@Override
 	public Mono<Server> start() {
-		return bind(config).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
+		return bind(tcpTransportConfig).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
 	}
 
 	@Override
 	public void attachHandlers(Connection connection) {
-		connection.addHandlerLast(TcpPreludeHandler.class.getSimpleName(), new TcpPreludeHandler(config));
+		connection.addHandlerLast(TcpPreludeHandler.class.getSimpleName(), new TcpPreludeHandler(tcpTransportConfig));
 	}
 
 	private void afterBinding(DisposableServer disposableServer) {
@@ -57,7 +57,7 @@ public class TcpTransportServer implements Server {
 	}
 
 	private void onSuccess(DisposableServer disposableServer) {
-		log.info("Thingshub TCP transport server has started on port {}", config.getPort());
+		log.info("Thingshub TCP transport server has started on port {}", tcpTransportConfig.getPort());
 	}
 
 	private void onError(Throwable e) {

@@ -107,8 +107,8 @@ public class MQTT5ConnectHandler extends MQTTConnectHandler {
 
 	private final Authenticator authenticator;
 
-	public MQTT5ConnectHandler(MqttTransportConfig mqttServerConfig) {
-		super(mqttServerConfig);
+	public MQTT5ConnectHandler(MqttTransportConfig mqttTransportConfig) {
+		super(mqttTransportConfig);
 
 		this.authenticator = Broker.getBean(Authenticator.class);
 	}

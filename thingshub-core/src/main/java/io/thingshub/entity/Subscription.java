@@ -44,7 +44,7 @@ public class Subscription implements Serializable {
 	 * Subscribe Group
 	 */
 	@QuerySqlField(index = true, name = "sub_group")
-	private String subGroup;
+	private String group;
 
 	/**
 	 * Original Topic
@@ -68,7 +68,7 @@ public class Subscription implements Serializable {
 	 * Subscribe Time
 	 */
 	@JSONField(format = "yyyy-MM-dd HH:mm:ss")
-	@QuerySqlField(index = true, name = "sub_time", notNull = true)
-	private Date subTime;
+	@QuerySqlField(index = true, notNull = true)
+	private Date time;
 
 }

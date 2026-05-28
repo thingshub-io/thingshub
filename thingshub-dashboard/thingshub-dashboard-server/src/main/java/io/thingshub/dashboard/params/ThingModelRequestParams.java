@@ -100,17 +100,23 @@ public class ThingModelRequestParams {
 		private String name;
 
 		/**
+		 * 服务类型。FUNCTION-供外部调用；REQUEST-设备向外部请求；
+		 */
+		@NotNull(message = "服务类型不能为空")
+		private String type;
+
+		/**
 		 * 服务的简短描述
 		 */
 		private String desc;
 
 		/**
-		 * 服务输入参数
+		 * 输入参数
 		 */
 		private List<InOutParameter> inputParameters;
 
 		/**
-		 * 服务输出参数
+		 * 输出参数
 		 */
 		private List<InOutParameter> outputParameters;
 
@@ -153,14 +159,9 @@ public class ThingModelRequestParams {
 		private String desc;
 
 		/**
-		 * 事件上报参数
+		 * 事件参数
 		 */
-		private List<InOutParameter> inputParameters;
-
-		/**
-		 * 事件回复参数
-		 */
-		private List<InOutParameter> outputParameters;
+		private List<InOutParameter> parameters;
 
 	}
 

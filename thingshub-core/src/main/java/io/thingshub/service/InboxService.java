@@ -22,11 +22,9 @@ import io.thingshub.commons.model.Page;
 import io.thingshub.entity.Inbox;
 import io.thingshub.ioc.Service;
 import io.thingshub.service.base.BaseService;
-import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.Delivery;
 import io.thingshub.transport.DeliverySource;
 import io.thingshub.transport.DelvieryStatus;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,9 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class InboxService extends BaseService<Long, Inbox> {
-
-	@Inject
-	private IdGenerator idGenerator;
 
 	public Page<Delivery> queryDeliveries(Map<String, Object> params, int page, int size) {
 		List<Condition> conditions = params.entrySet().stream().map(entry -> {
@@ -116,8 +111,8 @@ public class InboxService extends BaseService<Long, Inbox> {
 		}
 	}
 
-	public void cleanDeliveries(String clientId) {
-		this.remove(Lists.newArrayList(new Condition("client_id", clientId)));
+	public void cleanDeliveries(String receiverId) {
+		this.remove(Lists.newArrayList(new Condition("receiver_id", receiverId)));
 	}
 
 }

@@ -57,7 +57,7 @@ public final class MessageTransformEncoder extends MessageToMessageEncoder<MqttM
 
 			try {
 				switch (ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_CLIENT_TYPE).get()) {
-				case DEVICE -> {
+				case DEVICE_CLIENT -> {
 					String scriptLang = ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_SCRIPT_LANG).get();
 					byte[] payloadBytes = null;
 					if (scriptLang != null) {
@@ -81,7 +81,7 @@ public final class MessageTransformEncoder extends MessageToMessageEncoder<MqttM
 					out.add(publishMessage.replace(payloadBuf));
 					publishMessage.release();
 				}
-				case CLIENT_USER -> out.add(publishMessage);
+				case SERVICE_CLIENT -> out.add(publishMessage);
 				default -> out.add(publishMessage);
 				}
 			} catch (Exception e) {

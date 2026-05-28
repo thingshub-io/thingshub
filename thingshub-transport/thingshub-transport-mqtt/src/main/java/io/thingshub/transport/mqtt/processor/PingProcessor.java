@@ -2,7 +2,7 @@ package io.thingshub.transport.mqtt.processor;
 
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.packet.PingPacket;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,10 +16,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class PingProcessor implements Processor<MqttChannelContextWrapper, PingPacket> {
+public class PingProcessor implements Processor<MqttChannelContext, PingPacket> {
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, PingPacket packet) {
+	public void process(MqttChannelContext ctx, PingPacket packet) {
 		if (log.isDebugEnabled()) {
 			log.debug("Client send PINGREQ packet");
 		}

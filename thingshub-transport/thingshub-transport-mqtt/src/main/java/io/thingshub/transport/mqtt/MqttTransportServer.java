@@ -22,10 +22,10 @@ import reactor.netty.DisposableServer;
  */
 
 @Slf4j(topic = "io.thingshub.transport.server")
-public class MqttServer implements Server {
+public class MqttTransportServer implements Server {
 
 	@Inject
-	private MqttTransportConfig config;
+	private MqttTransportConfig mqttTransportConfig;
 
 	private DisposableServer disposableServer;
 
@@ -36,19 +36,19 @@ public class MqttServer implements Server {
 
 	@Override
 	public String name() {
-		return config.getName();
+		return mqttTransportConfig.getName();
 	}
 
 	@Override
 	public Mono<Server> start() {
-		return bind(config).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
+		return bind(mqttTransportConfig).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
 	}
 
 	@Override
 	public void attachHandlers(Connection connection) {
-		connection.addHandlerLast(MqttDecoder.class.getSimpleName(), new MqttDecoder(config.getMaxBytesInMessage()));
+		connection.addHandlerLast(MqttDecoder.class.getSimpleName(), new MqttDecoder(mqttTransportConfig.getMaxBytesInMessage()));
 		connection.addHandlerLast(MqttEncoder.class.getSimpleName(), MqttEncoder.INSTANCE);
-		connection.addHandlerLast(MQTTPreludeHandler.class.getSimpleName(), new MQTTPreludeHandler(config));
+		connection.addHandlerLast(MQTTPreludeHandler.class.getSimpleName(), new MQTTPreludeHandler(mqttTransportConfig));
 	}
 
 	private void afterBinding(DisposableServer disposableServer) {
@@ -61,7 +61,7 @@ public class MqttServer implements Server {
 	}
 
 	private void onSuccess(DisposableServer disposableServer) {
-		log.info("Thingshub MQTT transport server has started on port {}", config.getPort());
+		log.info("Thingshub MQTT transport server has started on port {}", mqttTransportConfig.getPort());
 	}
 
 	private void onError(Throwable e) {

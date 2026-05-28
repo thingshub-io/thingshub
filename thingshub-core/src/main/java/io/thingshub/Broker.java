@@ -46,11 +46,13 @@ import com.google.inject.TypeLiteral;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import cn.hutool.core.net.NetUtil;
+import io.thingshub.commons.ServiceException;
 import io.thingshub.commons.SysException;
 import io.thingshub.config.BrokerConfig;
 import io.thingshub.ioc.ApplicationRunner;
 import io.thingshub.ioc.Config;
 import io.thingshub.logging.LogIgniteService;
+import io.thingshub.service.TransportServerService;
 import io.thingshub.service.base.BaseService;
 import io.thingshub.service.base.DataRegion;
 import io.thingshub.service.base.IdGenerator;
@@ -73,8 +75,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class Broker {
 
-	private static final List<String> serverNames = new ArrayList<>();
-
 	private static final List<Consumer<String>> nodeFailureHandlers = new ArrayList<>();
 
 	public static String BROKER_ADDR = NetUtil.getLocalhost().getHostAddress();
@@ -85,10 +85,6 @@ public class Broker {
 
 	public static <T> T getBean(Class<T> clazz) {
 		return injector.getInstance(clazz);
-	}
-
-	public static List<String> getServerNames() {
-		return serverNames;
 	}
 
 	public static String getConsistentId() {
@@ -153,14 +149,13 @@ public class Broker {
 		Set<Class<?>> clazzsWithCustomDataRegion = reflections.get(Scanners.TypesAnnotated.with(DataRegion.class).asClass());
 		if (clazzsWithCustomDataRegion != null) {
 			Map<String, DataRegion> customeDataRegions = Maps.newHashMap();
-			clazzsWithCustomDataRegion.stream().map(c -> c.getAnnotation(DataRegion.class))
-					.forEach(region -> customeDataRegions.putIfAbsent(region.name(), region));
+			clazzsWithCustomDataRegion.stream().map(c -> c.getAnnotation(DataRegion.class)).forEach(region -> customeDataRegions.putIfAbsent(region.name(), region));
 			DataRegionConfiguration[] customDataRegionConfigurations = new DataRegionConfiguration[customeDataRegions.size()];
 			int i = 0;
 			for (Map.Entry<String, DataRegion> dataRegionEntry : customeDataRegions.entrySet()) {
 				DataRegion dataRegion = dataRegionEntry.getValue();
-				customDataRegionConfigurations[i] = new DataRegionConfiguration().setName(dataRegion.name()).setInitialSize(dataRegion.initSize())
-						.setMaxSize(dataRegion.maxSize()).setPersistenceEnabled(dataRegion.persistent());
+				customDataRegionConfigurations[i] = new DataRegionConfiguration().setName(dataRegion.name()).setInitialSize(dataRegion.initSize()).setMaxSize(dataRegion.maxSize())
+						.setPersistenceEnabled(dataRegion.persistent());
 
 				i++;
 			}
@@ -287,7 +282,13 @@ public class Broker {
 		 * Complete initialization and start transport server
 		 */
 		List<Mono<Server>> serverMonos = injector.findBindingsByType(TypeLiteral.get(Server.class)).stream().map(binding -> {
-			return injector.getInstance(binding.getKey()).start().doOnSuccess(s -> serverNames.add(s.name()));
+			return injector.getInstance(binding.getKey()).start().doOnSuccess(s -> {
+				try {
+					injector.getInstance(TransportServerService.class).saveTransportServer(s.name(), s.transport().name());
+				} catch (ServiceException se) {
+					log.error("", se);
+				}
+			});
 		}).toList();
 
 		return Mono.when(serverMonos).doOnSuccess(v -> {

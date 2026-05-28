@@ -1,7 +1,7 @@
 package io.thingshub.transport.mqtt.processor;
 
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.packet.DisconnectPacket;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,10 +15,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class DisconnectProcessor implements Processor<MqttChannelContextWrapper, DisconnectPacket> {
+public class DisconnectProcessor implements Processor<MqttChannelContext, DisconnectPacket> {
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, DisconnectPacket packet) {
+	public void process(MqttChannelContext ctx, DisconnectPacket packet) {
 		log.info("Client send DISCONNECT packet");
 
 		ctx.goAway(true);

@@ -88,6 +88,11 @@ public class ProductRequestParams {
 		private String transport;
 
 		/**
+		 * 协议适配器
+		 */
+		private String protoAdaptor;
+
+		/**
 		 * 产品图片URL列表
 		 */
 		private List<String> imgs;

@@ -2,7 +2,6 @@ package io.thingshub.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
@@ -35,12 +34,26 @@ public class DeviceService extends BaseService<Long, Device> {
 		return this.getOne(Lists.newArrayList(new Condition("sn", sn)));
 	}
 
+	public Device getByProductSn(String productCode, String sn) {
+		return this.getOne(Lists.newArrayList(new Condition("product_code", productCode), new Condition("sn", sn)));
+	}
+
 	public Page<Device> queryDevices(Map<String, Object> params, int page, int size) {
-		List<Condition> conditions = params.entrySet().stream().map(entry -> {
-			// TODO key到col 名称的映射
-			return new Condition(entry.getKey(), entry.getValue());
-		}).collect(Collectors.toList());
-		conditions.add(new Condition("deleted_status", DeletedStatus.NOT_DELETED.value()));
+		List<Condition> conditions = Lists.newArrayList(new Condition("deleted_status", DeletedStatus.NOT_DELETED.value()));
+
+		conditions.addAll(params.entrySet().stream().map(entry -> {
+			if (entry.getKey().equals("tenantId") && entry.getValue() != null) {
+				return new Condition("tenant_id", entry.getValue());
+			} else if (entry.getKey().equals("customerId") && entry.getValue() != null) {
+				return new Condition("customer_id", entry.getValue());
+			} else if (entry.getKey().equals("productCode") && entry.getValue() != null) {
+				return new Condition("product_code", entry.getValue());
+			} else if (entry.getValue() != null) {
+				return new Condition(entry.getKey(), entry.getValue());
+			} else {
+				return null;
+			}
+		}).filter(c -> c != null).toList());
 
 		return this.query(conditions, page, size);
 	}

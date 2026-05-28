@@ -1,8 +1,7 @@
 package io.thingshub.transport.tcp.handler;
 
-import static io.thingshub.subscribe.TopicUtils.THING_EVENT_POST_REPLY_TOPIC_FORMAT;
-import static io.thingshub.subscribe.TopicUtils.THING_PROPERTY_POST_REPLY_TOPIC_FORMAT;
-import static io.thingshub.subscribe.TopicUtils.THING_SERVICE_CALL_TOPIC_FORMAT;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
 import static io.thingshub.transport.ChannelContextWrapper.ATTRIBUTE_CURRENT_SERVER_NAME;
 
 import java.net.InetAddress;
@@ -30,15 +29,15 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.traffic.ChannelTrafficShapingHandler;
 import io.thingshub.Broker;
+import io.thingshub.commons.model.MessageType;
 import io.thingshub.commons.model.StreamDirection;
-import io.thingshub.commons.model.ThingModelType;
 import io.thingshub.commons.model.ThingshubMessage;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Connection;
-import io.thingshub.entity.MessageSpec;
+import io.thingshub.entity.MessageDefinition;
 import io.thingshub.schedule.Action;
 import io.thingshub.schedule.Scheduler;
-import io.thingshub.service.MessageSpecService;
+import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientInfo;
 import io.thingshub.service.model.ClientType;
@@ -84,7 +83,7 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 
 	private final MessageRouter messageRouter;
 
-	private final MessageSpecService messageSpecService;
+	private final MessageDefinitionService messageDefinitionService;
 
 	private final SubscriptionManager subscriptionManager;
 
@@ -171,12 +170,12 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 					public void operationComplete(ChannelFuture future) throws Exception {
 						if (future.isSuccess()) {
 							setLoggerMdc(ctx, StreamDirection.DOWN, thingshubMessage.getId(), thingshubMessage.getName());
-							log.info("Re-send packet successfully");
+							log.info("Resend packet successfully");
 
 							Broker.getBean(Scheduler.class).cancelTask(channelId, taskId);
 						} else {
 							setLoggerMdc(ctx, StreamDirection.DOWN, thingshubMessage.getId(), thingshubMessage.getName());
-							log.error("Re-sending packet failed");
+							log.error("Resend packet error");
 							if (future.cause() != null) {
 								log.error("", future.cause());
 							}
@@ -192,12 +191,12 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 				public void operationComplete(ChannelFuture future) throws Exception {
 					if (!future.isSuccess()) {
 						setLoggerMdc(ctx, StreamDirection.DOWN, thingshubMessage.getId(), thingshubMessage.getName());
-						log.error("Sending packet failed and will delay to re-send");
+						log.error("Send packet error and will delay resending packet");
 						if (future.cause() != null) {
 							log.error("", future.cause());
 						}
 
-						Broker.getBean(Scheduler.class).addTask(channelId, taskId, retryAction, 500L, resendTimes);
+						Broker.getBean(Scheduler.class).addTask(channelId, taskId, retryAction, 2000L, resendTimes);
 					} else {
 						Broker.getBean(Scheduler.class).cancelTask(channelId, taskId);
 					}
@@ -216,7 +215,7 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 		this.connectionManager = Broker.getBean(ConnectionManager.class);
 		this.sessionManager = Broker.getBean(SessionManager.class);
 		this.messageRouter = Broker.getBean(MessageRouter.class);
-		this.messageSpecService = Broker.getBean(MessageSpecService.class);
+		this.messageDefinitionService = Broker.getBean(MessageDefinitionService.class);
 		this.subscriptionManager = Broker.getBean(SubscriptionManager.class);
 		this.idGenerator = Broker.getBean(IdGenerator.class);
 		this.scheduler = Broker.getBean(Scheduler.class);
@@ -239,7 +238,7 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 				clientAddr = ip.getHostAddress();
 			}
 		}
-		this.tcpChannelContext = new TcpChannelContext(ctx, tenantSettings, clientInfo.clientId(), clientAddr, keepAlive);
+		this.tcpChannelContext = new TcpChannelContext(ctx, tenantSettings, clientInfo.username(), clientInfo.clientId(), clientAddr, keepAlive);
 		CHANNEL_CONTEXTS.put(clientInfo.clientId(), this.tcpChannelContext);
 
 		this.idleTimeoutTask = ctx.executor().scheduleAtFixedRate(this::checkIdle, idleTimeout, idleTimeout, TimeUnit.NANOSECONDS);
@@ -249,10 +248,10 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 		sessionManager.create(clientInfo.clientId(), Broker.getConsistentId(), 0);
 
 		String productCode = ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_PRODUCT_CODE).get();
-		List<MessageSpec> downMessageSpecs = messageSpecService.getDownMessageSpecs(productCode);
-		if (downMessageSpecs != null) {
-			downMessageSpecs.forEach(spec -> {
-				String topicFilter = buildTopicFilterByDownMessageSpec(productCode, spec);
+		List<MessageDefinition> downwardMessages = messageDefinitionService.getDownwardMessages(productCode);
+		if (downwardMessages != null) {
+			downwardMessages.forEach(spec -> {
+				String topicFilter = buildTopicFilterByDownwardMessage(productCode, spec);
 
 				if (topicFilter != null) {
 					ClientType clientType = ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_CLIENT_TYPE).get();
@@ -291,11 +290,11 @@ public class TcpSessionHandler extends ChannelDuplexHandler {
 		return connection;
 	}
 
-	private String buildTopicFilterByDownMessageSpec(String productCode, MessageSpec downMessageSpec) {
-		return switch (ThingModelType.valueOf(downMessageSpec.getCat())) {
-		case PROPERTY -> String.format(THING_PROPERTY_POST_REPLY_TOPIC_FORMAT, productCode, clientInfo.clientId(), downMessageSpec.getName());
-		case SERVICE -> String.format(THING_SERVICE_CALL_TOPIC_FORMAT, productCode, clientInfo.clientId(), downMessageSpec.getName());
-		case EVENT -> String.format(THING_EVENT_POST_REPLY_TOPIC_FORMAT, productCode, clientInfo.clientId(), downMessageSpec.getName());
+	private String buildTopicFilterByDownwardMessage(String productCode, MessageDefinition downwardMessage) {
+		return switch (MessageType.valueOf(downwardMessage.getType())) {
+		case SERVICE_FUNCTION_CALL -> String.format(THING_TOPIC_SERVICE_FUNCTION_CALL, productCode, clientInfo.clientId(), downwardMessage.getName());
+		case SERVICE_REQUEST_REPLY -> String.format(THING_TOPIC_SERVICE_REQUEST_REPLY, productCode, clientInfo.clientId(), downwardMessage.getName());
+		default -> null;
 		};
 	}
 

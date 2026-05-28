@@ -1,7 +1,8 @@
 package io.thingshub.dashboard.event;
 
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_MESSAGE_MODEL_CHANGED;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_MESSAGE_MODEL_CHANGED;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_ALL;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_CHANGE_MESSAGE_AUTHORIZATION;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_CHANGE_MESSAGE_AUTHORIZATION;
 
 import java.util.Calendar;
 import java.util.HashMap;
@@ -11,17 +12,18 @@ import java.util.concurrent.TimeUnit;
 
 import com.alibaba.fastjson2.JSONObject;
 
+import io.thingshub.Broker;
 import io.thingshub.entity.Publication;
 import io.thingshub.event.ApplicationListener;
 import io.thingshub.ioc.Component;
 import io.thingshub.service.PublicationService;
 import io.thingshub.service.base.IdGenerator;
-import io.thingshub.transport.PubMethod;
+import io.thingshub.transport.PublishWay;
 import jakarta.inject.Inject;
 
 /**
  * <p>
- * message specification change listening
+ * Listen message definition changing event
  * </p>
  *
  * @author albert pi
@@ -29,7 +31,7 @@ import jakarta.inject.Inject;
  */
 
 @Component
-public class MessageModelListener implements ApplicationListener<MessageModelEvent> {
+public class MessageAuthorizationListener implements ApplicationListener<MessageAuthorizationEvent> {
 
 	@Inject
 	private IdGenerator idGenerator;
@@ -38,21 +40,21 @@ public class MessageModelListener implements ApplicationListener<MessageModelEve
 	private PublicationService publicationService;
 
 	@Override
-	public void onApplicationEvent(MessageModelEvent event) {
+	public void onApplicationEvent(MessageAuthorizationEvent event) {
 		Map<String, Object> props = new HashMap<>();
 		props.put("qos", Integer.valueOf(2));
 
 		JSONObject stdMessage = new JSONObject();
 		stdMessage.put("id", UUID.randomUUID().toString());
-		stdMessage.put("clientId", "sys");
+		stdMessage.put("clientId", Broker.getConsistentId());
 		stdMessage.put("version", "1.0.0");
-		stdMessage.put("name", INTERNAL_MESSAGE_MESSAGE_MODEL_CHANGED);
+		stdMessage.put("name", SERVICE_CLIENT_INTERNAL_MESSAGE_CHANGE_MESSAGE_AUTHORIZATION);
 		stdMessage.put("timestamp", System.currentTimeMillis());
 
 		JSONObject paramsObj = new JSONObject();
 		paramsObj.put("productCode", event.getProductCode());
-		paramsObj.put("name", event.getName());
-		paramsObj.put("parameters", event.getParameters());
+		paramsObj.put("messageName", event.getMessageName());
+		paramsObj.put("messageSpec", event.getMessageSpec());
 		paramsObj.put("action", event.getAction());
 
 		stdMessage.put("params", paramsObj);
@@ -63,10 +65,11 @@ public class MessageModelListener implements ApplicationListener<MessageModelEve
 		long publicationId = idGenerator.nextId();
 		Publication publication = new Publication();
 		publication.setId(publicationId);
-		publication.setPublisherId("sys");
-		publication.setPubMethod(PubMethod.PUBLISH.value());
-		publication.setTopic(String.format(INTERNAL_TOPIC_MESSAGE_MODEL_CHANGED, event.getProductCode()));
-		publication.setStdTopic(String.format(INTERNAL_TOPIC_MESSAGE_MODEL_CHANGED, event.getProductCode()));
+		publication.setUsername("sys");
+		publication.setClientId(Broker.getConsistentId());
+		publication.setPubWay(PublishWay.PUBLISH.value());
+		publication.setTopic(String.format(SERVICE_CLIENT_INTERNAL_TOPIC_CHANGE_MESSAGE_AUTHORIZATION, event.getUsername(), SERVICE_CLIENT_ALL));
+		publication.setStdTopic(String.format(SERVICE_CLIENT_INTERNAL_TOPIC_CHANGE_MESSAGE_AUTHORIZATION, event.getUsername(), SERVICE_CLIENT_ALL));
 		publication.setProps(props);
 		publication.setPayload(stdMessage.toJSONString());
 		publication.setStdPayload(stdMessage.toJSONString());

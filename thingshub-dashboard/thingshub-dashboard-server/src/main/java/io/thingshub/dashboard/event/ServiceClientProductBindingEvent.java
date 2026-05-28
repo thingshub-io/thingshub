@@ -6,7 +6,7 @@ import io.thingshub.event.ApplicationEvent;
 import lombok.Getter;
 
 @Getter
-public class ClienntUserProductEvent extends ApplicationEvent {
+public class ServiceClientProductBindingEvent extends ApplicationEvent {
 
 	private static final long serialVersionUID = 1L;
 
@@ -16,7 +16,7 @@ public class ClienntUserProductEvent extends ApplicationEvent {
 
 	private final String action;
 
-	public ClienntUserProductEvent(Object source, String username, List<String> productCodes, String action) {
+	public ServiceClientProductBindingEvent(Object source, String username, List<String> productCodes, String action) {
 		super(source);
 
 		this.username = username;

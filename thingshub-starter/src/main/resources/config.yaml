@@ -10,13 +10,14 @@ thingshub:
       io.thingshub.transport.http: DEBUG
       org.apache.ignite: INFO
     
-  node-id: 1
-  node-attributes: # 节点属性，用于在分布式计算时对节点进行分组。默认属性为thingshub
+  node-id: 1 # 集群内唯一
+  node-attributes: 
     - thingshub 
 #  work-dir: /opt/thingshub/work # 绝对路径。默认为${THINGSHUB_HOME}/work
 #  bind: 0.0.0.0
 #  port: 10800
     
+  #  transport server
   transport: 
     wiretap: true  # 二进制日志 
 #    boss-thread-size: 1
@@ -33,8 +34,8 @@ thingshub:
     mqtt: 
       host: 0.0.0.0
       port: 1883
-      connect-timeout: 20 #连接超时时间。单位：秒
-      keep-alive: 300 # 保活时间。单位：秒
+      connect-timeout: 20 # 单位：秒
+      keep-alive: 300 # 单位：秒
 #      ssl: 
 #        crt: 
 #        key: 
@@ -46,8 +47,8 @@ thingshub:
     tcp: 
       host: 0.0.0.0
       port: 5000
-      connect-timeout: 20 #连接超时时间。单位：秒
-      keep-alive: 300 # 保活时间。单位：秒
+      connect-timeout: 20 # 单位：秒
+      keep-alive: 300 # 单位：秒
 #      ssl: 
 #        crt: 
 #        key: 
@@ -62,17 +63,18 @@ thingshub:
 #        key: 
 #        ca: 
     
-  # 管理控制台相关配置
+  # dashboard
   management: 
     host: 0.0.0.0 
     port: 18080 
     access-log: true
     
+    # 与平台统一认证中心集成时配置
     auth: 
-      ignite-servers: # 认证服务器。与平台统一认证中心集成时配置
+      ignite-servers: 
         - "192.168.3.198:11800"
    
-  # 服务注册与发现‌。将thingshub注册为平台中的一个微服务或需要调用平台其它微服务时进行配置
+  # 微服务注册发现配置‌
   registry:
     server-addr: "127.0.0.1:8848"
     username: nacos

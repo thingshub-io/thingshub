@@ -36,13 +36,23 @@ public class LastWill implements Serializable {
 	private Long id;
 
 	/**
+	 * User Name
+	 */
+	@QuerySqlField(name = "user_name", index = true, notNull = true)
+	private String username;
+
+	/**
 	 * Client ID
 	 */
 	@QuerySqlField(name = "client_id", index = true, notNull = true)
 	private String clientId;
 
 	/**
-	 * Client Type. Device or Biz System Client
+	 * Client Type
+	 * <ul>
+	 * <li>1-Device Client</li>
+	 * <li>2-Service Client</li>
+	 * </ul>
 	 */
 	@QuerySqlField(name = "client_type", notNull = true)
 	private Integer clientType;

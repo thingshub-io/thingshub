@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TcpPreludeHandler extends ChannelDuplexHandler {
 
-	private final TcpTransportConfig tcpServerConfig;
+	private final TcpTransportConfig tcpTransportConfig;
 
 	private ChannelHandlerContext ctx;
 
@@ -53,7 +53,7 @@ public class TcpPreludeHandler extends ChannelDuplexHandler {
 	private ScheduledFuture<?> closeConnectionTask;
 
 	public TcpPreludeHandler(TcpTransportConfig tcpServerConfig) {
-		this.tcpServerConfig = tcpServerConfig;
+		this.tcpTransportConfig = tcpServerConfig;
 	}
 
 	@Override
@@ -62,7 +62,7 @@ public class TcpPreludeHandler extends ChannelDuplexHandler {
 
 		timeoutCloseTask = ctx.executor().schedule(() -> {
 			ctx.channel().close();
-		}, tcpServerConfig.getConnectTimeout(), TimeUnit.SECONDS);
+		}, tcpTransportConfig.getConnectTimeout(), TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -94,58 +94,62 @@ public class TcpPreludeHandler extends ChannelDuplexHandler {
 				final byte[] msgBytes = new byte[buf.readableBytes()];
 				buf.readBytes(msgBytes);
 
-				String protocolScriptId = "TCP";// TODO
-				ScriptInfo theScript = Broker.getBean(ScriptService.class).getScript(protocolScriptId);
-				ScriptEngine scriptEngine = Broker.getBean(ScriptEngineFactory.class).getScriptEngine(theScript.getLang());
-				String strResult = scriptEngine.invoke(protocolScriptId, String.class, "preHandle", msgBytes);
-				if (strResult != null && !strResult.isBlank()) {
-					JSONObject objResult = JSON.parseObject(strResult);
-					String deviceSn = objResult.getString("sn");
+				ScriptInfo theScript = Broker.getBean(ScriptService.class).getScript(tcpTransportConfig.getName());
+				if (theScript == null) {
+					setLoggerMdc(ctx, null);
+					log.error("Failed to parse first packet. Error: no prehandle script specified for server");
+					closeChannel(null);
+				} else {
+					ScriptEngine scriptEngine = Broker.getBean(ScriptEngineFactory.class).getScriptEngine(theScript.getLang());
+					String strResult = scriptEngine.invoke(theScript.getName(), String.class, "preHandle", msgBytes);
+					if (strResult != null && !strResult.isBlank()) {
+						JSONObject objResult = JSON.parseObject(strResult);
+						String deviceSn = objResult.getString("sn");
 //					int thePacketId = objResult.getIntValue("packetId");
-					int thePacketType = objResult.getIntValue("packetType");
+						int thePacketType = objResult.getIntValue("packetType");
 //					String thePacketName = objResult.getString("packetName");
 
-					Device device = Broker.getBean(DeviceService.class).getBySn(deviceSn);
-					if (device != null) {
-						String strTransportPacket = scriptEngine.invoke(device.getProductCode(), String.class, "decode", deviceSn, msgBytes);
-						if (strTransportPacket != null) {
-							ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_CLIENT_ID).set(deviceSn);
-							ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_PRODUCT_CODE).set(device.getProductCode());
-							ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_SCRIPT_LANG).set(theScript.getLang());
+						Device device = Broker.getBean(DeviceService.class).getBySn(deviceSn);
+						if (device != null) {
+							String strTransportPacket = scriptEngine.invoke(device.getProductCode(), String.class, "decode", deviceSn, msgBytes);
+							if (strTransportPacket != null) {
+								ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_CLIENT_ID).set(deviceSn);
+								ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_PRODUCT_CODE).set(device.getProductCode());
+								ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_SCRIPT_LANG).set(theScript.getLang());
 
-							TransportPacket thePacket = JSON.parseObject(strTransportPacket, TransportPacket.class);
+								TransportPacket thePacket = JSON.parseObject(strTransportPacket, TransportPacket.class);
 
-							switch (Packet.of(thePacketType)) {
-							case REGISTER -> {
-								// TODO register device and get auth code or secret
-							}
-							case AUTH -> {
-								ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), TcpConnectHandler.class.getSimpleName(),
-										new TcpConnectHandler(tcpServerConfig));
-								ctx.fireChannelRead(thePacket);
-								ctx.pipeline().remove(this.getClass().getSimpleName());
-							}
-							default -> {
+								switch (Packet.of(thePacketType)) {
+								case REGISTER -> {
+									// TODO register device and get auth code or secret
+								}
+								case AUTH -> {
+									ctx.pipeline().addAfter(ctx.executor(), this.getClass().getSimpleName(), TcpConnectHandler.class.getSimpleName(),
+											new TcpConnectHandler(tcpTransportConfig));
+									ctx.fireChannelRead(thePacket);
+									ctx.pipeline().remove(this.getClass().getSimpleName());
+								}
+								default -> {
+									setLoggerMdc(ctx, deviceSn);
+									log.error("First packet must be a register packet or an auth packet. raw data: {}", new String(msgBytes, StandardCharsets.UTF_8));
+									closeChannel(null);
+								}
+								}
+							} else {
 								setLoggerMdc(ctx, deviceSn);
-								log.error("First packet must be a register packet or an auth packet. raw data: {}",
-										new String(msgBytes, StandardCharsets.UTF_8));
+								log.error("Failed to parse first packet. Raw data: {}", new String(msgBytes, StandardCharsets.UTF_8));
 								closeChannel(null);
-							}
 							}
 						} else {
 							setLoggerMdc(ctx, deviceSn);
-							log.error("Failed to parse first packet. Raw data: {}", new String(msgBytes, StandardCharsets.UTF_8));
+							log.error("Invalid device sn in packet. Device sn: {}, raw data: {}", deviceSn, new String(msgBytes, StandardCharsets.UTF_8));
 							closeChannel(null);
 						}
 					} else {
-						setLoggerMdc(ctx, deviceSn);
-						log.error("Invalid device sn in packet. Device sn: {}, raw data: {}", deviceSn, new String(msgBytes, StandardCharsets.UTF_8));
+						setLoggerMdc(ctx, null);
+						log.error("Failed to parse device sn from first packet. Raw data: {}", new String(msgBytes, StandardCharsets.UTF_8));
 						closeChannel(null);
 					}
-				} else {
-					setLoggerMdc(ctx, null);
-					log.error("Failed to parse device sn from first packet. Raw data: {}", new String(msgBytes, StandardCharsets.UTF_8));
-					closeChannel(null);
 				}
 			} catch (Exception e) {
 				setLoggerMdc(ctx, null);

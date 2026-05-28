@@ -41,12 +41,12 @@ public class ConnectionManager {
 		connectionService.listen((eventType, connInfo) -> {
 			switch (eventType) {
 			case CREATED -> {
-				if (connInfo.getClientType() == ClientType.DEVICE.value()) {
+				if (connInfo.getClientType() == ClientType.DEVICE_CLIENT.value()) {
 					deviceService.updateConnectState(connInfo.getClientId(), ConnectState.ON_LINE);
 				}
 			}
 			case REMOVED -> {
-				if (connInfo.getClientType() == ClientType.DEVICE.value()) {
+				if (connInfo.getClientType() == ClientType.DEVICE_CLIENT.value()) {
 					deviceService.updateConnectState(connInfo.getClientId(), ConnectState.OFF_LINE);
 				}
 

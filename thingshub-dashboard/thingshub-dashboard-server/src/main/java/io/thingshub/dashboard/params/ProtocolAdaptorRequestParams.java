@@ -55,6 +55,11 @@ public class ProtocolAdaptorRequestParams {
 		private String protocolVersion;
 
 		/**
+		 * 脚本ID（更新时不能为空）
+		 */
+		private Long scriptId;
+
+		/**
 		 * 脚本语言
 		 */
 		@NotBlank(message = "脚本语言不能为空")

@@ -78,7 +78,7 @@ public class DeviceRequestParams {
 		/**
 		 * 所在地区行政编码
 		 */
-		private String area;
+		private String region;
 
 		/**
 		 * 详细地址

@@ -19,7 +19,7 @@ import reactor.netty.DisposableServer;
 public class MqttWsServer implements Server {
 
 	@Inject
-	private MqttWsServerConfig config;
+	private MqttWsTransportConfig config;
 
 	private DisposableServer disposableServer;
 
@@ -44,8 +44,7 @@ public class MqttWsServer implements Server {
 		connection.addHandlerLast(HttpRequestDecoder.class.getSimpleName(), new HttpRequestDecoder());
 		connection.addHandlerLast(HttpObjectAggregator.class.getSimpleName(), new HttpObjectAggregator(65536));
 		connection.addHandlerLast(WebSocketOnlyHandler.class.getSimpleName(), new WebSocketOnlyHandler(config.getPath()));
-		connection.addHandlerLast(WebSocketServerProtocolHandler.class.getSimpleName(),
-				new WebSocketServerProtocolHandler(config.getPath(), "mqtt, mqttv3.1, mqttv3.1.1"));
+		connection.addHandlerLast(WebSocketServerProtocolHandler.class.getSimpleName(), new WebSocketServerProtocolHandler(config.getPath(), "mqtt, mqttv3.1, mqttv3.1.1"));
 		connection.addHandlerLast(MqttOverWsHandler.class.getSimpleName(), new MqttOverWsHandler(config));
 	}
 

@@ -96,7 +96,12 @@ public class Inbox implements Serializable {
 	private Date expireTime;
 
 	/**
-	 * Status. 0-initial state；1-sent to consumer already；2-consumer acked
+	 * Delivery Status
+	 * <ul>
+	 * <li>0-initial state</li>
+	 * <li>1-sent to consumer already</li>
+	 * <li>2-consumer acked</li>
+	 * </ul>
 	 */
 	@QuerySqlField(notNull = true, orderedGroups = { @QuerySqlField.Group(name = "rec_status_idx", order = 2) })
 	private Integer status;

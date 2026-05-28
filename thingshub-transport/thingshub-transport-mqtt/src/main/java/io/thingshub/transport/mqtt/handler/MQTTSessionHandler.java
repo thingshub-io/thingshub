@@ -63,7 +63,7 @@ import io.thingshub.transport.MessageRouter;
 import io.thingshub.transport.SessionManager;
 import io.thingshub.transport.Transport;
 import io.thingshub.transport.TransportPacket;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.ValidateMessageResult.Action;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5DisconnectReasonCode;
 import io.thingshub.transport.mqtt.packet.DisconnectPacket;
@@ -93,7 +93,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
-	public static final Map<String, MqttChannelContextWrapper> CHANNEL_CONTEXTS = new ConcurrentHashMap<>();
+	public static final Map<String, MqttChannelContext> CHANNEL_CONTEXTS = new ConcurrentHashMap<>();
 
 	private final ConnectionManager connectionManager;
 
@@ -127,7 +127,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
 	private boolean requestProblemInfo;
 
-	protected MqttChannelContextWrapper mqttChannelContextWrapper;
+	protected MqttChannelContext mqttChannelContextWrapper;
 
 	private LastWillTestament lwt;
 
@@ -144,7 +144,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 	private Function<Void, Boolean> initCallback;
 
 	private void onKick(String clientId, String channelId) {
-		MqttChannelContextWrapper ctx = CHANNEL_CONTEXTS.get(clientId);
+		MqttChannelContext ctx = CHANNEL_CONTEXTS.get(clientId);
 		if (ctx == null || !ctx.channel().id().asLongText().equals(channelId)) {
 			return;
 		}
@@ -220,8 +220,8 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 				clientAddr = ip.getHostAddress();
 			}
 		}
-		mqttChannelContextWrapper = new MqttChannelContextWrapper(ctx, tenantSettings, clientInfo.clientId(), clientAddr, keepAlive, requestProblemInfo, getProtocolVersion(),
-				sessionExpiryInterval);
+		mqttChannelContextWrapper = new MqttChannelContext(ctx, tenantSettings, clientInfo.username(), clientInfo.clientId(), clientAddr, keepAlive, requestProblemInfo,
+				getProtocolVersion(), sessionExpiryInterval);
 		lastActivateAt = Ticker.systemTicker().read();
 		CHANNEL_CONTEXTS.put(clientInfo.clientId(), mqttChannelContextWrapper);
 
@@ -248,7 +248,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 	}
 
 	private void onDelivered(Delivery delivery) {
-		MqttChannelContextWrapper ctx = CHANNEL_CONTEXTS.get(delivery.receiverId());
+		MqttChannelContext ctx = CHANNEL_CONTEXTS.get(delivery.receiverId());
 		if (ctx == null) {
 			return;
 		}
@@ -279,7 +279,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 			// TODO check pub QoS0 permission
 			if (log.isDebugEnabled()) {
 				setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "0", "PUBLISH");
-				log.debug("Server send PUBLISH packet, QoS level: {}, delivery id: {}", mqttQos.value(), delivery.id());
+				log.debug("Server send PUBLISH packet, Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
 			}
 
 			MqttPublishMessage publishMessage = buildPublishMessageFromDelivery(0, mqttQos, delivery);
@@ -293,10 +293,10 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 							deliveryReader.ackDelivery(ctx.getClientId(), delivery.id().longValue());
 
 							setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "0", "PUBLISH");
-							log.debug("Sending QoS{} PUBLISH packet successfull. Delivery ID: {}", mqttQos.value(), delivery.id());
+							log.debug("Send PUBLISH packet successfully. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
 						} else {
 							setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "0", "PUBLISH");
-							log.error("Sending QoS0 PUBLISH packet failed");
+							log.error("Send PUBLISH packet error. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
 							if (future.cause() != null) {
 								log.error("", future.cause());
 							}
@@ -309,11 +309,11 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		case EXACTLY_ONCE, AT_LEAST_ONCE -> {
 			String channelId = ctx.channel().id().asLongText();
 			int packetId = ctx.nextPacketId();
-			MqttChannelContextWrapper.bufferOutgoing(channelId.concat("_" + packetId).concat("_delivery"), delivery.id());
+			MqttChannelContext.bufferOutgoing(channelId.concat("_" + packetId).concat("_delivery"), delivery.id());
 
 			if (log.isDebugEnabled()) {
 				setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, String.valueOf(packetId), "PUBLISH");
-				log.debug("Server send PUBLISH packet, QoS level: {}, delivery id: {}", mqttQos.value(), delivery.id());
+				log.debug("Server send PUBLISH packet. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
 			}
 
 			String taskId = packetId + "";
@@ -327,7 +327,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 						public void operationComplete(ChannelFuture future) throws Exception {
 							if (!future.isSuccess()) {
 								setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, String.valueOf(packetId), "PUBLISH");
-								log.error("Re-sending QoS{} PUBLISH packet failed", mqttQos);
+								log.error("Resend PUBLISH packet error. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
 
 								if (future.cause() != null) {
 									log.error("", future.cause());
@@ -345,11 +345,11 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
 					@Override
 					public void operationComplete(ChannelFuture future) throws Exception {
-						Broker.getBean(Scheduler.class).addTask(channelId, taskId, repubAction, 600L, resendTimes);
+						Broker.getBean(Scheduler.class).addTask(channelId, taskId, repubAction, 2000L, resendTimes);
 
 						if (!future.isSuccess()) {
 							setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, String.valueOf(packetId), "PUBLISH");
-							log.error("Sending QoS{} PUBLISH packet failed and will delay to re-send");
+							log.error("Send PUBLISH packet error and will delay resending packet");
 							if (future.cause() != null) {
 								log.error("", future.cause());
 							}
@@ -379,7 +379,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		}
 	}
 
-	private Connection buildConnectionInfo(MqttChannelContextWrapper ctx) {
+	private Connection buildConnectionInfo(MqttChannelContext ctx) {
 		String channelId = ctx.channel().id().asLongText();
 		String serverName = ctx.channel().attr(ATTRIBUTE_CURRENT_SERVER_NAME).get();
 
@@ -466,6 +466,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
 		LastWill lastWill = new LastWill();
 		lastWill.setId(lastWillId);
+		lastWill.setUsername(clientInfo.username());
 		lastWill.setClientId(clientInfo.clientId());
 		lastWill.setClientType(ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_CLIENT_TYPE).get().value());
 		lastWill.setProductCode(ctx.channel().attr(ChannelContextWrapper.ATTRIBUTE_PRODUCT_CODE).get());

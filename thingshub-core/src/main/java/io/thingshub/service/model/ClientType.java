@@ -5,7 +5,7 @@ import lombok.experimental.Accessors;
 
 public enum ClientType {
 
-	DEVICE(1), CLIENT_USER(2);
+	DEVICE_CLIENT(1), SERVICE_CLIENT(2);
 
 	@Accessors(fluent = true)
 	@Getter
@@ -17,8 +17,8 @@ public enum ClientType {
 
 	public static ClientType of(int val) {
 		return switch (val) {
-		case 1 -> DEVICE;
-		case 2 -> CLIENT_USER;
+		case 1 -> DEVICE_CLIENT;
+		case 2 -> SERVICE_CLIENT;
 		default -> null;
 		};
 	}

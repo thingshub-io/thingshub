@@ -44,7 +44,7 @@ import io.thingshub.subscribe.SubscriptionManager;
 import io.thingshub.subscribe.TopicUtils;
 import io.thingshub.transport.DeliverySource;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5SubAckReasonCode;
 import io.thingshub.transport.mqtt.packet.SubscribePacket;
 import io.thingshub.transport.mqtt.service.Retain;
@@ -63,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, SubscribePacket> {
+public class SubscribeProcessor implements Processor<MqttChannelContext, SubscribePacket> {
 
 	enum SubResult {
 		OK, EXISTS, NO_INBOX, EXCEED_LIMIT, NOT_AUTHORIZED, TOPIC_FILTER_INVALID, WILDCARD_NOT_SUPPORTED, SHARED_SUBSCRIPTION_NOT_SUPPORTED, SUBSCRIPTION_IDENTIFIER_NOT_SUPPORTED,
@@ -90,7 +90,7 @@ public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, 
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void process(MqttChannelContextWrapper ctx, SubscribePacket packet) {
+	public void process(MqttChannelContext ctx, SubscribePacket packet) {
 		List<ClientSubscribe> clientSubscribes = (List<ClientSubscribe>) packet.getPayload().getParams();
 		log.info("Client send SUBSCRIBE packet, topics: {}", clientSubscribes);
 
@@ -164,7 +164,7 @@ public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, 
 		ctx.removeUsingPacketId(packet.getPacketId());
 	}
 
-	private SubResult checkSubscribe(MqttChannelContextWrapper ctx, ClientSubscribe clientSubscribe) {
+	private SubResult checkSubscribe(MqttChannelContext ctx, ClientSubscribe clientSubscribe) {
 		int maxTopicLevelLength = ctx.getTenantSettings().getMaxTopicLevelLength();
 		int maxTopicLevels = ctx.getTenantSettings().getMaxTopicLevels();
 		int maxTopicLength = ctx.getTenantSettings().getMaxTopicLength();
@@ -205,7 +205,7 @@ public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, 
 		return SubResult.OK;
 	}
 
-	private MqttSubAckMessage buildV3SubAck(MqttChannelContextWrapper ctx, int packetId, List<ClientSubscribe> clientSubscribes, List<SubResult> subResults) {
+	private MqttSubAckMessage buildV3SubAck(MqttChannelContext ctx, int packetId, List<ClientSubscribe> clientSubscribes, List<SubResult> subResults) {
 		List<MqttQoS> grantedQoSs = new ArrayList<>(subResults.size());
 		for (int i = 0; i < subResults.size(); i++) {
 			switch (subResults.get(i)) {
@@ -236,7 +236,7 @@ public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, 
 		return MqttMessageBuilders.subAck().packetId(packetId).addGrantedQoses(grantedQoSs.stream().toArray(MqttQoS[]::new)).build();
 	}
 
-	private MqttSubAckMessage buildV5SubAck(MqttChannelContextWrapper ctx, int packetId, List<ClientSubscribe> clientSubscribes, List<SubResult> subResults) {
+	private MqttSubAckMessage buildV5SubAck(MqttChannelContext ctx, int packetId, List<ClientSubscribe> clientSubscribes, List<SubResult> subResults) {
 		int[] reasonCodes = new int[subResults.size()];
 		assert clientSubscribes.size() == subResults.size();
 		for (int i = 0; i < subResults.size(); i++) {
@@ -259,7 +259,7 @@ public class SubscribeProcessor implements Processor<MqttChannelContextWrapper, 
 		return new MqttSubAckMessage(mqttFixedHeader, variableHeader, mqttSubAckPayload);
 	}
 
-	private void handleRetain(MqttChannelContextWrapper ctx, ClientSubscribe clientSubscribe) {
+	private void handleRetain(MqttChannelContext ctx, ClientSubscribe clientSubscribe) {
 		List<String> mappedStdTopic = subscriptionManager.getMappedStdTopics(clientSubscribe.getClientId(), clientSubscribe.getTopicFilter());
 		if (mappedStdTopic == null) {
 			return;

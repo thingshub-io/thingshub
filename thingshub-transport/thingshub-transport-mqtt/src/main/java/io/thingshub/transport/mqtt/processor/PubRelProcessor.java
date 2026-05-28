@@ -10,7 +10,7 @@ import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPubReplyMessageVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubCompReasonCode;
 import io.thingshub.transport.mqtt.packet.PubRelPacket;
 import lombok.extern.slf4j.Slf4j;
@@ -25,15 +25,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class PubRelProcessor implements Processor<MqttChannelContextWrapper, PubRelPacket> {
+public class PubRelProcessor implements Processor<MqttChannelContext, PubRelPacket> {
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, PubRelPacket packet) {
+	public void process(MqttChannelContext ctx, PubRelPacket packet) {
 		if (log.isDebugEnabled()) {
 			log.debug("Client send PUBREL packet");
 		}
 
-		Object thePubPacketId = MqttChannelContextWrapper.getIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"));
+		Object thePubPacketId = MqttChannelContext.getIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"));
 		MqttMessage pubCompMsg = null;
 		if (thePubPacketId == null) {
 			log.error("Protocol violation: client send PUBREL packet while packet[id:{}] not found", packet.getPacketId());

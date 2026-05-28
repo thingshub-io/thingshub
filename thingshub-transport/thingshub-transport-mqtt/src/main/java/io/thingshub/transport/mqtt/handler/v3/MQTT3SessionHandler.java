@@ -81,7 +81,7 @@ public class MQTT3SessionHandler extends MQTTSessionHandler {
 			log.error("Protocol violation: DUP flag MUST be set to 0 for all QoS 0 messages");
 
 			return new ValidateMessageResult(Action.JUST_CLOSE, null);
-		} else if (this.clientInfo.clientType() == ClientType.DEVICE && qos > tenantSettings.getMaxMqttQoS().value()) {
+		} else if (this.clientInfo.clientType() == ClientType.DEVICE_CLIENT && qos > tenantSettings.getMaxMqttQoS().value()) {
 			log.error("Resource limit: QoS {} is disabled", qos);
 
 			return new ValidateMessageResult(Action.JUST_CLOSE, null);

@@ -13,7 +13,18 @@ public final class UserContextHolder {
 	}
 
 	public static UserInfo getCurrentUser() {
-		return CURRENT_USER_CONTEXT.get();
+		UserInfo userInfo = new UserInfo();
+		userInfo.setId(1L);
+		userInfo.setName("admin");
+		userInfo.setMobile("13812345678");
+		userInfo.setNick("administrator");
+		userInfo.setAvatar("");
+		userInfo.setTenantId(1L);
+		userInfo.setStatus(0);
+
+		return userInfo;
+
+//		return CURRENT_USER_CONTEXT.get();
 	}
 
 	public static void clean() {

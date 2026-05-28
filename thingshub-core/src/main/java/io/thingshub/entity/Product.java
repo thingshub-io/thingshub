@@ -94,6 +94,12 @@ public class Product implements Serializable {
 	private String transport;
 
 	/**
+	 * Protocol Adaptor
+	 */
+	@QuerySqlField(name = "proto_adaptor")
+	private String protoAdaptor;
+
+	/**
 	 * Product Image URLs
 	 */
 	@QuerySqlField

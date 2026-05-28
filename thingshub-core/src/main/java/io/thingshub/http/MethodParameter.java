@@ -1,6 +1,7 @@
 package io.thingshub.http;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 
 import lombok.Data;
 
@@ -11,7 +12,9 @@ public class MethodParameter {
 
 	private String name;
 
-	private Class<?> type;
+	private Type type;
+
+//	private Class<?> clazz;
 
 	private Field[] parameterObjectFields;
 

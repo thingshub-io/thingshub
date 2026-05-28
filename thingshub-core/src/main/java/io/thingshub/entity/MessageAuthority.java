@@ -11,14 +11,14 @@ import lombok.Data;
 
 /**
  * <p>
- * Message Permission Assignment for Client User
+ * Message Authority for Service Client
  * </p>
  *
  * @author albert pi
  * @since 1.0.0
  */
 @Data
-public class MessageAssign implements Serializable {
+public class MessageAuthority implements Serializable {
 
 	private static final long serialVersionUID = 5296611516819935794L;
 
@@ -30,10 +30,10 @@ public class MessageAssign implements Serializable {
 	private Long id;
 
 	/**
-	 * Client User Name
+	 * Service User Name
 	 */
-	@QuerySqlField(index = true, name = "client_user_name", notNull = true)
-	private String clientUserName;
+	@QuerySqlField(index = true, name = "service_client", notNull = true)
+	private String serviceClient;
 
 	/**
 	 * Product Code
@@ -42,9 +42,9 @@ public class MessageAssign implements Serializable {
 	private String productCode;
 
 	/**
-	 * Message Specification ID
+	 * Message Name
 	 */
-	@QuerySqlField(index = true, name = "msg_spec_id", notNull = true)
-	private Long msgSpecId;
+	@QuerySqlField(index = true, name = "message_name", notNull = true)
+	private String messageName;
 
 }

@@ -20,16 +20,19 @@ public class PublishPacket extends TransportPacket {
 		this.packetType = MqttMessageType.PUBLISH.value();
 		this.packetName = MqttMessageType.PUBLISH.name();
 		this.timestamp = System.currentTimeMillis();
-
 		this.topic = topic;
+		this.payload = payload;
 
 		Map<String, Object> properties = new HashMap<>();
 		properties.put("qos", Integer.valueOf(qos));
 		properties.put("isRetain", Boolean.valueOf(isRetain));
 		properties.put("isDup", Boolean.valueOf(isDup));
-		properties.putAll(props);
 
-		this.payload = payload;
+		if (props != null) {
+			properties.putAll(props);
+		}
+
+		this.properties = properties;
 	}
 
 }

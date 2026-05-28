@@ -1,24 +1,16 @@
 package io.thingshub.transport;
 
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_DEVICE_INFO_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_DISABLE_DEVICE_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_ENABLE_DEVICE_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_QUERY_DEVICE_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_MESSAGE_QUERY_MESSAGE_MODEL_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_BOUND_PRODUCT_QUERY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_BOUND_PRODUCT_QUERY_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_DISABLE;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_DISABLE_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_ENABLE;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_ENABLE_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_INFO;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_INFO_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_QUERY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_DEVICE_QUERY_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_MESSAGE_MODEL_QUERY;
-import static io.thingshub.commons.model.ThingshubConstants.INTERNAL_TOPIC_MESSAGE_MODEL_QUERY_REPLY;
-import static io.thingshub.subscribe.TopicUtils.isInternalTopic;
-import static io.thingshub.subscribe.TopicUtils.isTopicMatch;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO_ACK;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE_ACK;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION_ACK;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_PRODUCT_BINDING;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_DEVICE_INFO_REPLY;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_DEVICE_REPLY;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_MESSAGE_DEFINITION_REPLY;
+import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_PRODUCT_BINDING_REPLY;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -28,33 +20,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Maps;
 
 import cn.hutool.core.date.DateUtil;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.MessageModel;
+import io.thingshub.commons.model.DataTypeSpecs;
+import io.thingshub.commons.model.MessageParameter;
 import io.thingshub.commons.model.MessageResult;
+import io.thingshub.commons.model.MessageSpec;
+import io.thingshub.commons.model.MessageType;
 import io.thingshub.commons.model.Page;
 import io.thingshub.commons.model.ThingshubMessage;
 import io.thingshub.config.TenantSettings;
-import io.thingshub.entity.ClientUser;
 import io.thingshub.entity.Device;
-import io.thingshub.entity.MessageSpec;
+import io.thingshub.entity.MessageDefinition;
 import io.thingshub.entity.Publication;
+import io.thingshub.entity.ServiceClient;
 import io.thingshub.entity.Session;
 import io.thingshub.ioc.Component;
-import io.thingshub.service.ClientUserService;
 import io.thingshub.service.DeviceService;
 import io.thingshub.service.InboxService;
-import io.thingshub.service.MessageSpecService;
+import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.PublicationService;
+import io.thingshub.service.ServiceClientService;
 import io.thingshub.service.ThingModelService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.Delivery;
@@ -77,17 +73,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PublicationDistributor {
 
+	private final Map<String, Consumer<Publication>> internal_request_handlers = Maps.newHashMap();
+
 	@Inject
 	private PublicationService publicationService;
 
 	@Inject
-	private ClientUserService clientUserService;
+	private ServiceClientService serviceClientService;
 
 	@Inject
 	private ThingModelService thingModelService;
 
 	@Inject
-	private MessageSpecService messageSpecService;
+	private MessageDefinitionService messageDefinitionService;
 
 	@Inject
 	private DeviceService deviceService;
@@ -109,24 +107,24 @@ public class PublicationDistributor {
 
 	@PostConstruct
 	public void init() {
+		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_PRODUCT_BINDING, this::handleProductBingdingQuery);
+		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION, this::handleMessageDefinitionQuery);
+		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE, this::handleDeviceQuery);
+		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO, this::handleDeviceInfo);
+
 		publicationService.listen((eventType, publication) -> {
 			switch (eventType) {
 			case CREATED -> {
-				/**
-				 * process internal message sent by thingshub client
-				 */
-				if (isInternalTopic(publication.getStdTopic())) {
-					handleInternalMessage(publication);
-				}
+				String messageName = publication.getStdTopic().substring(publication.getStdTopic().lastIndexOf("/") + 1);
+				Consumer<Publication> internalRequestHandler = internal_request_handlers.get(messageName);
 
-				/**
-				 * process normal message sent by device or thingshub client
-				 */
-				else {
+				if (internalRequestHandler != null) {
+					internalRequestHandler.accept(publication);
+				} else {
 					Set<MatchedSubscriber> matchedSubscribers = subscriptionManager.match(publication.getStdTopic());
 					matchedSubscribers.stream().filter(s -> {
-						return !s.getSubscriberId().equals(publication.getPublisherId())
-								|| (s.getSubscriberId().equals(publication.getPublisherId()) && Boolean.FALSE.equals(s.getProps().get("noLocal")));
+						return !s.getSubscriberId().equals(publication.getClientId())
+								|| (s.getSubscriberId().equals(publication.getClientId()) && Boolean.FALSE.equals(s.getProps().get("noLocal")));
 					}).collect(Collectors.groupingBy(s -> Optional.ofNullable(s.getGroup()).orElse(s.getSubscriberId()))).forEach((grp, subs) -> {
 						Integer qos = (Integer) publication.getProps().get("qos");
 						MatchedSubscriber selectedSubscriber = null;
@@ -154,8 +152,8 @@ public class PublicationDistributor {
 								long deliveryId = idGenerator.nextId();
 
 								Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId()).recProps(selectedSubscriber.getProps())
-										.senderId(publication.getPublisherId()).sendProps(publication.getProps()).topic(publication.getTopic()).payload(publication.getStdPayload())
-										.deliverySource(DeliverySource.of(publication.getPubMethod())).deliverTime(new Date()).build();
+										.senderId(publication.getClientId()).sendProps(publication.getProps()).topic(publication.getTopic()).payload(publication.getStdPayload())
+										.deliverySource(DeliverySource.of(publication.getPubWay())).deliverTime(new Date()).build();
 
 								// session is persistent and client is offline
 								if (sessionOfSuscriber.getExpireTime() != null) {
@@ -181,22 +179,6 @@ public class PublicationDistributor {
 		});
 	}
 
-	private void handleInternalMessage(Publication publication) {
-		if (isTopicMatch(INTERNAL_TOPIC_BOUND_PRODUCT_QUERY, publication.getStdTopic())) {
-			handleBoundProductQuery(publication);
-		} else if (isTopicMatch(INTERNAL_TOPIC_MESSAGE_MODEL_QUERY, publication.getStdTopic())) {
-			handleMessageModelQuery(publication);
-		} else if (isTopicMatch(INTERNAL_TOPIC_DEVICE_QUERY, publication.getStdTopic())) {
-			handleDeviceQuery(publication);
-		} else if (isTopicMatch(INTERNAL_TOPIC_DEVICE_INFO, publication.getStdTopic())) {
-			handleDeviceInfo(publication);
-		} else if (isTopicMatch(INTERNAL_TOPIC_DEVICE_DISABLE, publication.getStdTopic())) {
-			handleDeviceDisable(publication);
-		} else if (isTopicMatch(INTERNAL_TOPIC_DEVICE_ENABLE, publication.getStdTopic())) {
-			handleDeviceEnable(publication);
-		}
-	}
-
 	private void createPublication4Reply(String topic, ThingshubMessage payload, Date expiredAt) {
 		String strPayload = JSON.toJSONString(payload);
 
@@ -208,8 +190,9 @@ public class PublicationDistributor {
 		long publicationId = idGenerator.nextId();
 		Publication publication = new Publication();
 		publication.setId(publicationId);
-		publication.setPublisherId("sys");
-		publication.setPubMethod(PubMethod.PUBLISH.value());
+		publication.setUsername("sys");
+		publication.setClientId(Broker.getConsistentId());
+		publication.setPubWay(PublishWay.PUBLISH.value());
 		publication.setTopic(topic);
 		publication.setStdTopic(topic);
 		publication.setProps(props);
@@ -220,24 +203,23 @@ public class PublicationDistributor {
 		publicationService.save(publicationId, publication, messageExpiryInterval, TimeUnit.SECONDS);
 	}
 
-	private void handleBoundProductQuery(Publication publication) {
+	private void handleProductBingdingQuery(Publication publication) {
 		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
+		String messageId = stdMessage.getString("id");
 		String clientId = stdMessage.getString("clientId");
-		JSONObject params = stdMessage.getJSONObject("params");
-		String username = params.getString("username");
-		String topic4Reply = String.format(INTERNAL_TOPIC_BOUND_PRODUCT_QUERY_REPLY, username, clientId);
+		String topic4Reply = String.format(SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_PRODUCT_BINDING_REPLY, publication.getUsername(), clientId);
 
 		List<String> boundProducts = Collections.emptyList();
-		ClientUser clientUser = clientUserService.getClientUser(username);
-		if (clientUser != null && clientUser.getProductCodes() != null) {
-			boundProducts = JSON.parseArray(clientUser.getProductCodes()).toJavaList(String.class);
+		ServiceClient serviceClient = serviceClientService.getServiceClient(publication.getUsername());
+		if (serviceClient != null && serviceClient.getProductCodes() != null) {
+			boundProducts = JSON.parseArray(serviceClient.getProductCodes()).toJavaList(String.class);
 		}
 
 		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
+		replyMessage.setId(messageId);
 		replyMessage.setClientId(Broker.getConsistentId());
 		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_QUERY_MESSAGE_MODEL_ACK);
+		replyMessage.setName(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION_ACK);
 		replyMessage.setTime(DateUtil.now());
 		replyMessage.setCode(MessageResult.SUCCESS.code());
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
@@ -246,45 +228,100 @@ public class PublicationDistributor {
 		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
 	}
 
-	private void handleMessageModelQuery(Publication publication) {
+	private void handleMessageDefinitionQuery(Publication publication) {
 		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
+		String messageId = stdMessage.getString("id");
 		String clientId = stdMessage.getString("clientId");
 		JSONObject params = stdMessage.getJSONObject("params");
-		String username = params.getString("username");
 		String productCode = params.getString("productCode");
-		String topic4Reply = String.format(INTERNAL_TOPIC_MESSAGE_MODEL_QUERY_REPLY, username, clientId);
+		String topic4Reply = String.format(SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_MESSAGE_DEFINITION_REPLY, publication.getUsername(), clientId);
 
-		List<MessageModel> messageModels = Collections.emptyList();
-		List<MessageSpec> messageSpecs = messageSpecService.getMessageSpecs(username, productCode);
-		if (messageSpecs != null) {
-			Map<String, JSONObject> parametersInThingModel = thingModelService.getParametersInThingModel(productCode);
+		List<MessageSpec> messageSpecs = Collections.emptyList();
+		List<MessageDefinition> authorizedMessages = messageDefinitionService.getAuthorizedMessages(publication.getUsername(), productCode);
+		if (authorizedMessages != null) {
+			messageSpecs = authorizedMessages.stream().map(m -> {
+				MessageSpec messageSpec = new MessageSpec();
+				messageSpec.setId(m.getId());
+				messageSpec.setName(m.getName());
+				messageSpec.setTitle(m.getTitle());
+				messageSpec.setProductCode(m.getProductCode());
+				messageSpec.setType(m.getType());
+				messageSpec.setTopic(m.getTopic());
+				messageSpec.setDescription(m.getDescription());
 
-			messageModels = messageSpecs.stream().map(msgSpec -> {
-				return messageSpecService.messageSpec2MessageModel(msgSpec, parametersInThingModel);
+				JSONArray parametersInThingModel = switch (MessageType.of(m.getType())) {
+				case PROPERTY_POST -> thingModelService.getThingProperties(m.getProductCode());
+				case PROPERTY_REPLY -> null;
+				case SERVICE_FUNCTION_CALL -> {
+					JSONObject theService = thingModelService.getThingService(m.getProductCode(), m.getModelIdentifier());
+
+					yield theService != null ? theService.getJSONArray("inputParameters") : null;
+				}
+				case SERVICE_FUNCTION_REPLY -> {
+					JSONObject theService = thingModelService.getThingService(m.getProductCode(), m.getModelIdentifier());
+
+					yield theService != null ? theService.getJSONArray("outputParameters") : null;
+				}
+				case SERVICE_REQUEST_POST -> {
+					JSONObject theService = thingModelService.getThingService(m.getProductCode(), m.getModelIdentifier());
+
+					yield theService != null ? theService.getJSONArray("inputParameters") : null;
+				}
+				case SERVICE_REQUEST_REPLY -> {
+					JSONObject theService = thingModelService.getThingService(m.getProductCode(), m.getModelIdentifier());
+
+					yield theService != null ? theService.getJSONArray("outputParameters") : null;
+				}
+				case EVENT_POST -> {
+					JSONObject theEvent = thingModelService.getThingEvent(m.getProductCode(), m.getModelIdentifier());
+
+					yield theEvent != null ? theEvent.getJSONArray("parameters") : null;
+				}
+				case EVENT_REPLY -> null;
+				};
+
+				if (parametersInThingModel != null) {
+					List<MessageParameter> messageParameters = parametersInThingModel.stream().map(p -> {
+						JSONObject parameterObj = (JSONObject) p;
+
+						MessageParameter messageParameter = new MessageParameter();
+						messageParameter.setIdentifier(parameterObj.getString("identifier"));
+						messageParameter.setName(parameterObj.getString("name"));
+						messageParameter.setDataTypeSpecs(parameterObj.getObject("dataType", DataTypeSpecs.class));
+						messageParameter.setRequired(parameterObj.getBooleanValue("required"));
+						messageParameter.setDesc(parameterObj.getString("desc"));
+
+						return messageParameter;
+					}).toList();
+
+					messageSpec.setParameters(messageParameters);
+				}
+
+				return messageSpec;
 			}).toList();
 		}
 
 		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
+		replyMessage.setId(messageId);
 		replyMessage.setClientId(Broker.getConsistentId());
 		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_QUERY_MESSAGE_MODEL_ACK);
+		replyMessage.setName(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION_ACK);
 		replyMessage.setTime(DateUtil.now());
 		replyMessage.setCode(MessageResult.SUCCESS.code());
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
-		replyMessage.setData(messageModels);
+		replyMessage.setData(messageSpecs);
 
 		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
 	}
 
 	private void handleDeviceQuery(Publication publication) {
 		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
+		String messageId = stdMessage.getString("id");
 		String clientId = stdMessage.getString("clientId");
 		JSONObject params = stdMessage.getJSONObject("params");
-		String username = params.getString("username");
 
 		JSONObject queryCriterions = params.getJSONObject("queryCriterions");
-		String topic4Reply = String.format(INTERNAL_TOPIC_DEVICE_QUERY_REPLY, username, clientId);
+		String topic4Reply = String.format(SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_DEVICE_REPLY, publication.getUsername(), clientId);
 
 		Map<String, Object> queryParams = new HashMap<>();
 		queryParams.put("tenantId", queryCriterions.getString("tenantId"));
@@ -296,10 +333,10 @@ public class PublicationDistributor {
 		Page<Device> devices = deviceService.queryDevices(queryParams, queryCriterions.getIntValue("page"), queryCriterions.getIntValue("size"));
 
 		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
+		replyMessage.setId(messageId);
 		replyMessage.setClientId(Broker.getConsistentId());
 		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_QUERY_DEVICE_ACK);
+		replyMessage.setName(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE_ACK);
 		replyMessage.setTime(DateUtil.now());
 		replyMessage.setCode(MessageResult.SUCCESS.code());
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
@@ -310,19 +347,20 @@ public class PublicationDistributor {
 
 	private void handleDeviceInfo(Publication publication) {
 		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
+		String messageId = stdMessage.getString("id");
 		String clientId = stdMessage.getString("clientId");
 		JSONObject params = stdMessage.getJSONObject("params");
-		String username = params.getString("username");
+		String productCode = params.getString("productCode");
 		String sn = params.getString("sn");
-		String topic4Reply = String.format(INTERNAL_TOPIC_DEVICE_INFO_REPLY, username, clientId);
+		String topic4Reply = String.format(SERVICE_CLIENT_INTERNAL_TOPIC_DEVICE_INFO_REPLY, publication.getUsername(), clientId);
 
-		Device device = deviceService.getBySn(sn);
+		Device device = deviceService.getByProductSn(productCode, sn);
 
 		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
+		replyMessage.setId(messageId);
 		replyMessage.setClientId(Broker.getConsistentId());
 		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_DEVICE_INFO_ACK);
+		replyMessage.setName(SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO_ACK);
 		replyMessage.setTime(DateUtil.now());
 		replyMessage.setCode(MessageResult.SUCCESS.code());
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
@@ -330,58 +368,4 @@ public class PublicationDistributor {
 
 		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
 	}
-
-	private void handleDeviceDisable(Publication publication) {
-		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
-		JSONObject params = stdMessage.getJSONObject("params");
-		String clientId = stdMessage.getString("clientId");
-
-		String username = params.getString("username");
-		String productCode = params.getString("productCode");
-		String sn = params.getString("sn");
-		String topic4Reply = String.format(INTERNAL_TOPIC_DEVICE_DISABLE_REPLY, username, clientId);
-
-		// TODO 检查操作者权限
-		deviceService.disable(productCode, sn);
-
-		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
-		replyMessage.setClientId(Broker.getConsistentId());
-		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_DISABLE_DEVICE_ACK);
-		replyMessage.setTime(DateUtil.now());
-		replyMessage.setCode(MessageResult.SUCCESS.code());
-		replyMessage.setMessage(MessageResult.SUCCESS.desc());
-		replyMessage.setData(null);
-
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
-	}
-
-	private void handleDeviceEnable(Publication publication) {
-		JSONObject stdMessage = JSON.parseObject(publication.getPayload());
-		JSONObject params = stdMessage.getJSONObject("params");
-		String clientId = stdMessage.getString("clientId");
-
-		String username = params.getString("username");
-		String productCode = params.getString("productCode");
-		String sn = params.getString("sn");
-		String topic4Reply = String.format(INTERNAL_TOPIC_DEVICE_ENABLE_REPLY, username, clientId);
-
-		// TODO 检查操作者权限
-		deviceService.enable(productCode, sn);
-
-		ThingshubMessage replyMessage = new ThingshubMessage();
-		replyMessage.setId(UUID.randomUUID().toString());
-		replyMessage.setClientId(Broker.getConsistentId());
-		replyMessage.setVersion("1.0.0");
-		replyMessage.setName(INTERNAL_MESSAGE_ENABLE_DEVICE_ACK);
-		replyMessage.setTime(DateUtil.now());
-		replyMessage.setCode(MessageResult.SUCCESS.code());
-		replyMessage.setMessage(MessageResult.SUCCESS.desc());
-		replyMessage.setData(null);
-
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
-
-	}
-
 }

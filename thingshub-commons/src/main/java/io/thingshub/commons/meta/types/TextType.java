@@ -10,8 +10,8 @@ public class TextType extends DataType {
 
 	public static TextType fromSpecs(Map<String, Object> specs) {
 		TextType txtType = new TextType();
-		if (specs != null) {
-			txtType.setLength((Integer) specs.get("length"));
+		if (specs != null && specs.get("length") != null) {
+			txtType.setLength(Integer.valueOf(specs.get("length").toString()));
 		}
 
 		return txtType;

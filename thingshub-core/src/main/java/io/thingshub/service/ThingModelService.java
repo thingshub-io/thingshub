@@ -2,13 +2,11 @@ package io.thingshub.service;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import cn.hutool.db.sql.Condition;
 import io.thingshub.commons.ServiceException;
@@ -55,63 +53,45 @@ public class ThingModelService extends BaseService<Long, ThingModel> {
 		return thingModel.getId();
 	}
 
-	public Map<String, JSONObject> getParametersInThingModel(String productCode) {
+	public JSONArray getThingProperties(String productCode) {
 		ThingModel thingModel = this.getThingModel(productCode);
 		JSONObject thingModelSpecification = JSON.parseObject(thingModel.getSpecification());
-		Map<String, JSONObject> parametersInThingModel = Maps.newHashMap();
 
-		JSONArray propsInThingModel = thingModelSpecification.getJSONArray("properties");
-		if (propsInThingModel != null) {
-			for (int i = 0; i < propsInThingModel.size(); i++) {
-				parametersInThingModel.put("property_" + propsInThingModel.getJSONObject(i).getString("identifier"), propsInThingModel.getJSONObject(i));
-			}
-		}
+		return thingModelSpecification.getJSONArray("properties");
+	}
+
+	public JSONObject getThingEvent(String productCode, String eventIdentifier) {
+		ThingModel thingModel = this.getThingModel(productCode);
+		JSONObject thingModelSpecification = JSON.parseObject(thingModel.getSpecification());
+
 		JSONArray events = thingModelSpecification.getJSONArray("events");
 		if (events != null) {
-			for (int i = 0; i < events.size(); i++) {
-				String eventIdentifier = "event_" + events.getJSONObject(i).getString("identifier");
-
-				JSONArray inputParametersInEvent = events.getJSONObject(i).getJSONArray("inputParameters");
-				if (inputParametersInEvent != null) {
-					for (int j = 0; j < inputParametersInEvent.size(); j++) {
-						parametersInThingModel.put(eventIdentifier + "_input_" + inputParametersInEvent.getJSONObject(j).getString("identifier"),
-								inputParametersInEvent.getJSONObject(j));
-					}
-				}
-
-				JSONArray outputParametersInEvent = events.getJSONObject(i).getJSONArray("outputParameters");
-				if (outputParametersInEvent != null) {
-					for (int j = 0; j < outputParametersInEvent.size(); j++) {
-						parametersInThingModel.put(eventIdentifier + "_output_" + outputParametersInEvent.getJSONObject(j).getString("identifier"),
-								outputParametersInEvent.getJSONObject(j));
-					}
+			for (Object o : events) {
+				JSONObject e = (JSONObject) o;
+				if (eventIdentifier.equals(e.getString("identifier"))) {
+					return e;
 				}
 			}
 		}
+
+		return null;
+	}
+
+	public JSONObject getThingService(String productCode, String serviceIdentifier) {
+		ThingModel thingModel = this.getThingModel(productCode);
+		JSONObject thingModelSpecification = JSON.parseObject(thingModel.getSpecification());
+
 		JSONArray services = thingModelSpecification.getJSONArray("services");
 		if (services != null) {
-			for (int i = 0; i < services.size(); i++) {
-				String serviceIdentifier = "service_" + services.getJSONObject(i).getString("identifier");
-
-				JSONArray inputParametersInService = services.getJSONObject(i).getJSONArray("inputParameters");
-				if (inputParametersInService != null) {
-					for (int j = 0; j < inputParametersInService.size(); j++) {
-						parametersInThingModel.put(serviceIdentifier + "_input_" + inputParametersInService.getJSONObject(j).getString("identifier"),
-								inputParametersInService.getJSONObject(j));
-					}
-				}
-
-				JSONArray outputParametersInService = services.getJSONObject(i).getJSONArray("outputParameters");
-				if (outputParametersInService != null) {
-					for (int j = 0; j < outputParametersInService.size(); j++) {
-						parametersInThingModel.put(serviceIdentifier + "_output_" + outputParametersInService.getJSONObject(j).getString("identifier"),
-								outputParametersInService.getJSONObject(j));
-					}
+			for (Object o : services) {
+				JSONObject s = (JSONObject) o;
+				if (serviceIdentifier.equals(s.getString("identifier"))) {
+					return s;
 				}
 			}
 		}
 
-		return parametersInThingModel;
+		return null;
 	}
 
 }

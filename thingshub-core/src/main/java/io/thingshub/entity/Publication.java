@@ -35,16 +35,26 @@ public class Publication implements Serializable {
 	private Long id;
 
 	/**
-	 * Publisher ID
+	 * Publisher User Name
 	 */
-	@QuerySqlField(index = true, name = "publisher_id", notNull = true)
-	private String publisherId;
+	@QuerySqlField(index = true, notNull = true)
+	private String username;
 
 	/**
-	 * Publishing Method. 1-Client Publish Directly;2-Client Publish by Last Will;
+	 * Publisher Client ID
 	 */
-	@QuerySqlField(name = "pub_method", notNull = true)
-	private Integer pubMethod;
+	@QuerySqlField(index = true, name = "client_id", notNull = true)
+	private String clientId;
+
+	/**
+	 * Publish Way
+	 * <ul>
+	 * <li>1-Client Publish Directly</li>
+	 * <li>2-Client Publish by Last Will</li>
+	 * </ul>
+	 */
+	@QuerySqlField(name = "pub_way", notNull = true)
+	private Integer pubWay;
 
 	/**
 	 * Publish Topic

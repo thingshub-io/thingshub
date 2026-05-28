@@ -12,7 +12,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.thingshub.schedule.Scheduler;
 import io.thingshub.transport.DeliveryReader;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubRecReasonCode;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubRelReasonCode;
 import io.thingshub.transport.mqtt.packet.PubRecPacket;
@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class PubRecProcessor implements Processor<MqttChannelContextWrapper, PubRecPacket> {
+public class PubRecProcessor implements Processor<MqttChannelContext, PubRecPacket> {
 
 	@Inject
 	private DeliveryReader deliveryReader;
@@ -38,12 +38,12 @@ public class PubRecProcessor implements Processor<MqttChannelContextWrapper, Pub
 	private Scheduler scheduler;
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, PubRecPacket packet) {
+	public void process(MqttChannelContext ctx, PubRecPacket packet) {
 		if (log.isDebugEnabled()) {
 			log.debug("Client send PUBREC packet");
 		}
 
-		Long deliveryId = (Long) MqttChannelContextWrapper.getOutgoing(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_delivery"));
+		Long deliveryId = (Long) MqttChannelContext.getOutgoing(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_delivery"));
 		MqttMessage pubRelMsg = null;
 		if (deliveryId == null) {
 			log.error("Protocol violation: client send PUBREC packet while packet[id:{}] not found [MQTT3-4.3.3-1, MQTT5-4.3.3-8]", packet.getPacketId());

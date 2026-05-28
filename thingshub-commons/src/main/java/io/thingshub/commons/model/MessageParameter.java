@@ -6,7 +6,7 @@ import lombok.Data;
 
 /**
  * <p>
- * Request or Reply Parameter Specification
+ * Message Parameter
  * </p>
  *
  * @author albert pi
@@ -30,7 +30,7 @@ public class MessageParameter implements Serializable {
 	/**
 	 * 数据类型及规范
 	 */
-	private DataTypeSpecs dataType;
+	private DataTypeSpecs dataTypeSpecs;
 
 	/**
 	 * 是否必需
@@ -38,7 +38,7 @@ public class MessageParameter implements Serializable {
 	private boolean required = false;
 
 	/**
-	 * 简短描述
+	 * 消息参数的简短描述
 	 */
 	private String desc;
 

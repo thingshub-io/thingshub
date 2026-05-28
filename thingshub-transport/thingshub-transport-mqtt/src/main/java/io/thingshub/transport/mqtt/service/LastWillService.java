@@ -5,7 +5,7 @@ import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.CORREL
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.PAYLOAD_FORMAT_INDICATOR;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.RESPONSE_TOPIC;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.USER_PROPERTY;
-import static io.thingshub.subscribe.TopicUtils.THING_EVENT_POST_TOPIC_FORMAT;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_POST;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.charset.StandardCharsets;
@@ -35,7 +35,7 @@ import io.thingshub.service.base.BaseService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientType;
 import io.thingshub.transport.ConnectionManager;
-import io.thingshub.transport.PubMethod;
+import io.thingshub.transport.PublishWay;
 import io.thingshub.transport.SessionManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -124,8 +124,8 @@ public class LastWillService extends BaseService<Long, LastWill> {
 
 						String stdTopic = lw.getTopic();
 						String payload = lw.getPayload();
-						if (ClientType.DEVICE == ClientType.of(lw.getClientType())) {
-							stdTopic = String.format(THING_EVENT_POST_TOPIC_FORMAT, lw.getProductCode(), lw.getClientId(), "lastwill");
+						if (ClientType.DEVICE_CLIENT == ClientType.of(lw.getClientType())) {
+							stdTopic = String.format(THING_TOPIC_EVENT_POST, lw.getProductCode(), lw.getClientId(), "lastwill");
 
 							ScriptInfo transformScript = scriptService.getScript(lw.getProductCode());
 							if (transformScript != null) {
@@ -141,8 +141,9 @@ public class LastWillService extends BaseService<Long, LastWill> {
 						long publicationId = idGenerator.nextId();
 						Publication publication = new Publication();
 						publication.setId(publicationId);
-						publication.setPublisherId(lw.getClientId());
-						publication.setPubMethod(PubMethod.LASTWILL.value());
+						publication.setUsername(lw.getUsername());
+						publication.setClientId(lw.getClientId());
+						publication.setPubWay(PublishWay.LASTWILL.value());
 						publication.setTopic(lw.getTopic());
 						publication.setStdTopic(stdTopic);
 						publication.setProps(props);

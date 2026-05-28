@@ -1,10 +1,9 @@
 package io.thingshub.subscribe;
 
-import static io.thingshub.subscribe.TopicUtils.CLIENT_ID_PLACEHOLDER_IN_TOPIC;
+import static io.thingshub.commons.model.ThingshubConstants.THINGSHUB_CLIENT_ID_PLACEHOLDER;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
 import static io.thingshub.subscribe.TopicUtils.DELIMITER;
-import static io.thingshub.subscribe.TopicUtils.THING_EVENT_POST_REPLY_TOPIC_FORMAT;
-import static io.thingshub.subscribe.TopicUtils.THING_PROPERTY_POST_REPLY_TOPIC_FORMAT;
-import static io.thingshub.subscribe.TopicUtils.THING_SERVICE_CALL_TOPIC_FORMAT;
 import static io.thingshub.subscribe.TopicUtils.UNORDERED_SHARE;
 import static io.thingshub.subscribe.TopicUtils.isTopicMatch;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -22,16 +21,16 @@ import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
 
 import cn.hutool.db.sql.Condition;
-import io.thingshub.commons.model.ThingModelType;
+import io.thingshub.commons.model.MessageType;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.GroupSelection;
-import io.thingshub.entity.MessageSpec;
+import io.thingshub.entity.MessageDefinition;
 import io.thingshub.entity.Subscription;
 import io.thingshub.ioc.Component;
 import io.thingshub.service.DeviceService;
 import io.thingshub.service.GroupSelectionService;
 import io.thingshub.service.GroupSelectionService.GroupSelectionKey;
-import io.thingshub.service.MessageSpecService;
+import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.SubscriptionService;
 import io.thingshub.service.SubscriptionService.SubKey;
 import io.thingshub.service.base.IdGenerator;
@@ -67,7 +66,7 @@ public class SubscriptionManager {
 	private DeviceService deviceService;
 
 	@Inject
-	private MessageSpecService messageSpecService;
+	private MessageDefinitionService messageDefinitionService;
 
 	@Inject
 	private SubscriptionService subscriptionService;
@@ -85,37 +84,37 @@ public class SubscriptionManager {
 		List<Subscription> subsInLocal = subscriptionService.listInLocal();
 		if (subsInLocal != null) {
 			subsInLocal.forEach(s -> {
-				MatchedSubscriber match = new MatchedSubscriber(s.getSubscriberId(), s.getTopicFilter(), s.getProps(), s.getSubGroup());
+				MatchedSubscriber match = new MatchedSubscriber(s.getSubscriberId(), s.getTopicFilter(), s.getProps(), s.getGroup());
 
 				topicTree.add(s.getStdTopic(), match);
 				topicBloomFilter.put(s.getStdTopic());
 
-				if (s.getSubGroup() != null) {
-					topicTree.add(UNORDERED_SHARE.concat(DELIMITER).concat(s.getSubGroup()), match);
-					topicBloomFilter.put(UNORDERED_SHARE.concat(DELIMITER).concat(s.getSubGroup()));
+				if (s.getGroup() != null) {
+					topicTree.add(UNORDERED_SHARE.concat(DELIMITER).concat(s.getGroup()), match);
+					topicBloomFilter.put(UNORDERED_SHARE.concat(DELIMITER).concat(s.getGroup()));
 				}
 			});
 		}
 
 		subscriptionService.listenInLocal((et, s) -> {
-			MatchedSubscriber subscriber = new MatchedSubscriber(s.getSubscriberId(), s.getTopicFilter(), s.getProps(), s.getSubGroup());
+			MatchedSubscriber subscriber = new MatchedSubscriber(s.getSubscriberId(), s.getTopicFilter(), s.getProps(), s.getGroup());
 
 			switch (et) {
 			case CREATED, UPDATED -> {
 				topicTree.add(s.getStdTopic(), subscriber);
 				topicBloomFilter.put(s.getStdTopic());
 
-				if (s.getSubGroup() != null) {
-					topicTree.add(UNORDERED_SHARE.concat(DELIMITER).concat(s.getSubGroup()), subscriber);
-					topicBloomFilter.put(UNORDERED_SHARE.concat(DELIMITER).concat(s.getSubGroup()));
+				if (s.getGroup() != null) {
+					topicTree.add(UNORDERED_SHARE.concat(DELIMITER).concat(s.getGroup()), subscriber);
+					topicBloomFilter.put(UNORDERED_SHARE.concat(DELIMITER).concat(s.getGroup()));
 				}
 			}
 			case EXPIRED -> {
 				topicTree.remove(s.getStdTopic(), subscriber);
 				// 如果客户端频繁断开连接、取消订阅，会导致误判率增加。是否重建BloomFilter？？？
 
-				if (s.getSubGroup() != null) {
-					topicTree.remove(UNORDERED_SHARE.concat(DELIMITER).concat(s.getSubGroup()), subscriber);
+				if (s.getGroup() != null) {
+					topicTree.remove(UNORDERED_SHARE.concat(DELIMITER).concat(s.getGroup()), subscriber);
 				}
 
 				subscriptionService.removeByKey(new SubKey(s.getId(), s.getSubscriberId()));
@@ -157,8 +156,7 @@ public class SubscriptionManager {
 
 	public boolean hasSubscribed(String clientId, String group, String topicFilter) {
 		boolean hasSubscribed = false;
-		List<Condition> conditions = Lists.newArrayList(new Condition("subscriber_id", clientId), new Condition("sub_group", group),
-				new Condition("topic_filter", topicFilter));
+		List<Condition> conditions = Lists.newArrayList(new Condition("subscriber_id", clientId), new Condition("sub_group", group), new Condition("topic_filter", topicFilter));
 		List<Subscription> subscribings = subscriptionService.query(conditions);
 		if (subscribings != null && subscribings.size() > 0) {
 			hasSubscribed = true;
@@ -170,52 +168,56 @@ public class SubscriptionManager {
 	public void subscribe(ClientSubscribe clientSubscribe) {
 		List<String> topicFilters = Lists.newArrayList();
 
-		if (clientSubscribe.getClientType() == ClientType.DEVICE) {
+		if (clientSubscribe.getClientType() == ClientType.DEVICE_CLIENT) {
 			Device device = deviceService.getBySn(clientSubscribe.getClientId());
 			String productCode = device.getProductCode();
 			String subscriberId = clientSubscribe.getClientId();
 
-			List<MessageSpec> downMessageSpecs = messageSpecService.getDownMessageSpecs(device.getProductCode());
-			if (downMessageSpecs != null) {
-				downMessageSpecs.forEach(spec -> {
-					String msgTopic = spec.getTopic().replace(CLIENT_ID_PLACEHOLDER_IN_TOPIC, device.getSn());
+			List<MessageDefinition> downwardMessages = messageDefinitionService.getDownwardMessages(device.getProductCode());
+			if (downwardMessages != null) {
+				downwardMessages.forEach(m -> {
+					String msgTopic = m.getTopic().replace(THINGSHUB_CLIENT_ID_PLACEHOLDER, device.getSn());
 					if (isTopicMatch(clientSubscribe.getTopicFilter(), msgTopic)) {
-						topicFilters.add(switch (ThingModelType.of(spec.getCat())) {
-						case PROPERTY -> String.format(THING_PROPERTY_POST_REPLY_TOPIC_FORMAT, productCode, subscriberId, spec.getName());
-						case SERVICE -> String.format(THING_SERVICE_CALL_TOPIC_FORMAT, productCode, subscriberId, spec.getName());
-						case EVENT -> String.format(THING_EVENT_POST_REPLY_TOPIC_FORMAT, productCode, subscriberId, spec.getName());
-						});
+						String topicFilter = switch (MessageType.of(m.getType())) {
+						case SERVICE_FUNCTION_CALL -> String.format(THING_TOPIC_SERVICE_FUNCTION_CALL, productCode, subscriberId, m.getName());
+						case SERVICE_REQUEST_REPLY -> String.format(THING_TOPIC_SERVICE_REQUEST_REPLY, productCode, subscriberId, m.getName());
+						default -> null;
+						};
+
+						if (topicFilter != null) {
+							topicFilters.add(topicFilter);
+						}
 					}
 				});
 			}
 
 			if (topicFilters.size() == 0) {
-				log.warn("SUBSCRIBE: no matched topic in device's message model, sn: {} ", device.getSn());
+				log.warn("SUBSCRIBE: no matched topic in device's message definition, sn: {} ", device.getSn());
 			}
-		} else if (clientSubscribe.getClientType() == ClientType.CLIENT_USER) {
+		} else if (clientSubscribe.getClientType() == ClientType.SERVICE_CLIENT) {
 			topicFilters.add(clientSubscribe.getTopicFilter());
 		}
 
 		topicFilters.forEach(tf -> {
-			long subcribingId = idGenerator.nextId();
-			Subscription subcribing = new Subscription();
-			subcribing.setId(subcribingId);
-			subcribing.setSubscriberId(clientSubscribe.getClientId());
-			subcribing.setSubGroup(clientSubscribe.getGroup());
-			subcribing.setTopicFilter(clientSubscribe.getTopicFilter());
-			subcribing.setStdTopic(tf);
-			subcribing.setProps(clientSubscribe.getProps());
-			subcribing.setSubTime(new Date());
+			long subcriptionId = idGenerator.nextId();
+			Subscription subcription = new Subscription();
+			subcription.setId(subcriptionId);
+			subcription.setSubscriberId(clientSubscribe.getClientId());
+			subcription.setGroup(clientSubscribe.getGroup());
+			subcription.setTopicFilter(clientSubscribe.getTopicFilter());
+			subcription.setStdTopic(tf);
+			subcription.setProps(clientSubscribe.getProps());
+			subcription.setTime(new Date());
 
-			SubKey subKey = new SubKey(subcribingId, clientSubscribe.getClientId());
-			subscriptionService.save(subKey, subcribing);
+			SubKey subKey = new SubKey(subcriptionId, clientSubscribe.getClientId());
+			subscriptionService.save(subKey, subcription);
 		});
 	}
 
 	public boolean unsubscribe(ClientUnsubscribe clientUnsubscribe) {
 		boolean hasSubscribed = false;
-		List<Condition> conditions = Lists.newArrayList(new Condition("subscriber_id", clientUnsubscribe.getClientId()),
-				new Condition("sub_group", clientUnsubscribe.getGroup()), new Condition("topic_filter", clientUnsubscribe.getTopicFilter()));
+		List<Condition> conditions = Lists.newArrayList(new Condition("subscriber_id", clientUnsubscribe.getClientId()), new Condition("sub_group", clientUnsubscribe.getGroup()),
+				new Condition("topic_filter", clientUnsubscribe.getTopicFilter()));
 		List<Subscription> subcribings = subscriptionService.query(conditions);
 		if (subcribings != null && subcribings.size() > 0) {
 			hasSubscribed = true;

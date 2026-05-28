@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import io.thingshub.Broker;
 import io.thingshub.commons.Result;
 import io.thingshub.commons.ServiceException;
 import io.thingshub.commons.SysException;
+import io.thingshub.commons.utils.TypeUtils;
 import io.thingshub.http.HttpMethod;
 import io.thingshub.http.MethodParameter;
 import io.thingshub.http.MethodWrapper;
@@ -86,7 +88,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 
 	private final Map<String, String> PATH_METHOD_MAPPING = new HashMap<>();
 
-	private BiFunction<String, Class<?>, ?> jsonConverter = (json, clazz) -> JSON.parseObject(json, clazz);
+	private BiFunction<String, Type, ?> jsonConverter = (json, type) -> JSON.parseObject(json, type);
 
 	@Getter
 	private InterceptorChain interceptorChain;
@@ -139,6 +141,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 //						PATH_METHOD_MAPPING.put(controllerClazz.getCanonicalName() + "." + method.getName(), methodWrapper);
 
 						final Class<?>[] parameterTypes = method.getParameterTypes();
+						final Type[] genericTypes = method.getGenericParameterTypes();
 
 						MethodWrapper methodWrapper = new MethodWrapper();
 						methodWrapper.setMethod(method);
@@ -158,6 +161,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 							for (int i = 0; i < len; i++) {
 								String parameterName = attr.variableName(i + pos);
 								Class<?> parameterClazz = parameterTypes[i];
+								Type genericTypeType = genericTypes[i];
 								Class<?>[] parameterValidationGroups = new Class[] { Default.class };
 								Object[] parameterAnnotations = allParameterAnnotations[i];
 								String requestParamName = parameterName;
@@ -193,7 +197,8 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 								MethodParameter methodParameter = new MethodParameter();
 								methodParameter.setRequestParamName(requestParamName);
 								methodParameter.setName(parameterName);
-								methodParameter.setType(parameterClazz);
+//								methodParameter.setClazz(parameterClazz);
+								methodParameter.setType(genericTypeType);
 								methodParameter.setParameterObjectFields(parameterObjectFields);
 								methodParameter.setValidationGroups(parameterValidationGroups);
 								methodParameter.setNeedValidation(needValidation);
@@ -233,12 +238,11 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 	@Override
 	public void accept(HttpServerRoutes routes) {
 		REQUEST_METHODS.forEach((methodName, methodWrapper) -> {
-			BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> requestHandler = (request, response) -> this
-					.handleRequest(request, response, methodWrapper);
+			BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> requestHandler = (request, response) -> this.handleRequest(request,
+					response, methodWrapper);
 
 			for (HttpMethod httpMethod : methodWrapper.getRequestMapping().method()) {
-				String[] paths = methodWrapper.getRequestMapping().path() != null ? methodWrapper.getRequestMapping().path()
-						: methodWrapper.getRequestMapping().value();
+				String[] paths = methodWrapper.getRequestMapping().path() != null ? methodWrapper.getRequestMapping().path() : methodWrapper.getRequestMapping().value();
 				for (String path : paths) {
 					switch (httpMethod) {
 					case OPTIONS -> {
@@ -305,63 +309,60 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 				queryParams0.forEach((k, v) -> queryParams.put(k, v.get(0)));
 			}
 
-			return request.receive().then(Mono.just(bindRequestParamsToMethodParameters(request, response, methodWrapper, queryParams)))
-					.doOnNext(methodParams -> {
-						try {
-							Object ret = null;
-							if (methodWrapper.getParameters() != null) {
-								for (Entry<String, MethodParameter> entry : methodWrapper.getParameters().entrySet()) {
-									if (entry.getKey().equals("requestBody")) {
-										continue;
-									}
-
-									if (entry.getValue().isNeedValidation()) {
-										Object methodParamValue = methodParams.get(entry.getKey());
-										if (methodParamValue == null) {
-											throw new ValidationException(entry.getValue().getRequestParamName().concat("不能为空"));
-										}
-
-										ValidationUtils.validate(methodParams.get(entry.getKey()), entry.getValue().getValidationGroups());
-									}
-
-								}
-
-								ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()),
-										methodParams.values().toArray());
-							} else {
-								ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()));
+			return request.receive().then(Mono.just(bindRequestParamsToMethodParameters(request, response, methodWrapper, queryParams))).doOnNext(methodParams -> {
+				try {
+					Object ret = null;
+					if (methodWrapper.getParameters() != null) {
+						for (Entry<String, MethodParameter> entry : methodWrapper.getParameters().entrySet()) {
+							if (entry.getKey().equals("requestBody")) {
+								continue;
 							}
 
-							interceptorChain.applyPostHandle(request, response);
+							if (entry.getValue().isNeedValidation()) {
+								Object methodParamValue = methodParams.get(entry.getKey());
+								if (methodParamValue == null) {
+									throw new ValidationException(entry.getValue().getRequestParamName().concat("不能为空"));
+								}
+
+								ValidationUtils.validate(methodParams.get(entry.getKey()), entry.getValue().getValidationGroups());
+							}
+
+						}
+
+						ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()), methodParams.values().toArray());
+					} else {
+						ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()));
+					}
+
+					interceptorChain.applyPostHandle(request, response);
 
 //								if (methodWrapper.getRequestMapping().produces()[0].indexOf("application/json") > -1) {
-							String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret)
-									: JSON.toJSONString(Result.success(ret));
-							response.sendString(Mono.just(result), StandardCharsets.UTF_8)
-									.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then().subscribe();
+					String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret) : JSON.toJSONString(Result.success(ret));
+					response.sendString(Mono.just(result), StandardCharsets.UTF_8).then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then()
+							.subscribe();
 //								}
-						} catch (Exception e) {
-							log.error("", e);
+				} catch (Exception e) {
+					log.error("", e);
 
-							if (e instanceof ValidationException ve) {
-								response.status(400).sendString(Mono.just(JSON.toJSONString(Result.error(400, ve.getMessage()))), StandardCharsets.UTF_8)
-										.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, ve))).then().subscribe();
-							} else if (e instanceof InvocationTargetException ite) {
-								Throwable t = ite.getTargetException();
+					if (e instanceof ValidationException ve) {
+						response.status(400).sendString(Mono.just(JSON.toJSONString(Result.error(400, ve.getMessage()))), StandardCharsets.UTF_8)
+								.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, ve))).then().subscribe();
+					} else if (e instanceof InvocationTargetException ite) {
+						Throwable t = ite.getTargetException();
 
-								if (t instanceof ServiceException svre) {
-									response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(500, svre.getMessage()))), StandardCharsets.UTF_8)
-											.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, svre))).then().subscribe();
-								} else if (t instanceof SysException se) {
-									response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(504, se.getMessage()))), StandardCharsets.UTF_8)
-											.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, se))).then().subscribe();
-								}
-							} else {
-								response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(504, "system error"))), StandardCharsets.UTF_8)
-										.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, e))).then().subscribe();
-							}
+						if (t instanceof ServiceException svre) {
+							response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(500, svre.getMessage()))), StandardCharsets.UTF_8)
+									.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, svre))).then().subscribe();
+						} else if (t instanceof SysException se) {
+							response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(504, se.getMessage()))), StandardCharsets.UTF_8)
+									.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, se))).then().subscribe();
 						}
-					}).then();
+					} else {
+						response.status(500).sendString(Mono.just(JSON.toJSONString(Result.error(504, "system error"))), StandardCharsets.UTF_8)
+								.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, e))).then().subscribe();
+					}
+				}
+			}).then();
 		} else if (request.method().name().equalsIgnoreCase("POST")) {
 			if (request.isMultipart()) {
 				MultipartHttpRequest multipartHttpRequest = new MultipartHttpRequest(request);
@@ -372,8 +373,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 							switch (data.getHttpDataType()) {
 							case FileUpload -> {
 								FileUpload uploadData = (FileUpload) data;
-								MultipartFile multipartFile = new MultipartFile(uploadData.getName(), uploadData.getFilename(), uploadData.getContentType(),
-										uploadData.get());
+								MultipartFile multipartFile = new MultipartFile(uploadData.getName(), uploadData.getFilename(), uploadData.getContentType(), uploadData.get());
 								multipartHttpRequest.addFile(uploadData.getName(), multipartFile);
 
 								return Mono.just(multipartHttpRequest);
@@ -407,8 +407,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 							}
 						});
 					}
-					Map<String, Object> multipartMethodParams = bindRequestParamsToMethodParameters(multipartHttpRequest, response, methodWrapper,
-							requestParams);
+					Map<String, Object> multipartMethodParams = bindRequestParamsToMethodParameters(multipartHttpRequest, response, methodWrapper, requestParams);
 
 					try {
 						Object ret = null;
@@ -428,8 +427,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 								}
 							}
 
-							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()),
-									multipartMethodParams.values().toArray());
+							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()), multipartMethodParams.values().toArray());
 						} else {
 							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()));
 						}
@@ -437,10 +435,8 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 						interceptorChain.applyPostHandle(request, response);
 
 //						if (methodWrapper.getRequestMapping().produces()[0].indexOf("application/json") > -1) {
-						String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret)
-								: JSON.toJSONString(Result.success(ret));
-						response.sendString(Mono.just(result)).then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then()
-								.subscribe();
+						String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret) : JSON.toJSONString(Result.success(ret));
+						response.sendString(Mono.just(result)).then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then().subscribe();
 //						}
 					} catch (Exception e) {
 						log.error("", e);
@@ -507,8 +503,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 								}
 							}
 
-							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()),
-									methodParams.values().toArray());
+							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()), methodParams.values().toArray());
 						} else {
 							ret = methodWrapper.getMethod().invoke(Broker.getBean(methodWrapper.getMethod().getDeclaringClass()));
 						}
@@ -516,10 +511,9 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 						interceptorChain.applyPostHandle(request, response);
 
 //						if (methodWrapper.getRequestMapping().produces()[0].indexOf("application/json") > -1) {
-						String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret)
-								: JSON.toJSONString(Result.success(ret));
-						response.sendString(Mono.just(result), StandardCharsets.UTF_8)
-								.then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then().subscribe();
+						String result = ANT_PATH_MATCHER.match(INTERNAL_SERVICE_API_URL_PATTERN, request.path()) ? JSON.toJSONString(ret) : JSON.toJSONString(Result.success(ret));
+						response.sendString(Mono.just(result), StandardCharsets.UTF_8).then(Mono.from(v -> interceptorChain.triggerAfterCompletion(request, response, null))).then()
+								.subscribe();
 //						}
 					} catch (Exception e) {
 						log.error("", e);
@@ -691,7 +685,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 			}
 			default -> {
 				try {
-					Object parameterTypeInstance = methodParameter.getType().getDeclaredConstructor().newInstance();
+					Object methodParameterInstance = TypeUtils.createInstance(methodParameter.getType());
 					Field[] fields = methodParameter.getParameterObjectFields();
 					for (Field field : fields) {
 						field.setAccessible(true);
@@ -704,87 +698,87 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 						switch (field.getType().getTypeName()) {
 						case "java.lang.String" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, fieldValue);
+								field.set(methodParameterInstance, fieldValue);
 							}
 						}
 						case "long" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Long.parseLong(fieldValue));
+								field.set(methodParameterInstance, Long.parseLong(fieldValue));
 							}
 						}
 						case "java.lang.Long" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Long.valueOf(fieldValue));
+								field.set(methodParameterInstance, Long.valueOf(fieldValue));
 							}
 						}
 						case "int" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Integer.parseInt(fieldValue));
+								field.set(methodParameterInstance, Integer.parseInt(fieldValue));
 							}
 						}
 						case "java.lang.Integer" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Integer.valueOf(fieldValue));
+								field.set(methodParameterInstance, Integer.valueOf(fieldValue));
 							}
 						}
 						case "short" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Short.parseShort(fieldValue));
+								field.set(methodParameterInstance, Short.parseShort(fieldValue));
 							}
 						}
 						case "java.lang.Short" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Short.valueOf(fieldValue));
+								field.set(methodParameterInstance, Short.valueOf(fieldValue));
 							}
 						}
 						case "byte" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Byte.parseByte(fieldValue));
+								field.set(methodParameterInstance, Byte.parseByte(fieldValue));
 							}
 						}
 						case "java.lang.Byte" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Byte.valueOf(fieldValue));
+								field.set(methodParameterInstance, Byte.valueOf(fieldValue));
 							}
 						}
 						case "boolean" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Boolean.parseBoolean(fieldValue));
+								field.set(methodParameterInstance, Boolean.parseBoolean(fieldValue));
 							}
 						}
 						case "java.lang.Boolean" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Boolean.valueOf(fieldValue));
+								field.set(methodParameterInstance, Boolean.valueOf(fieldValue));
 							}
 						}
 						case "float" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Float.parseFloat(fieldValue));
+								field.set(methodParameterInstance, Float.parseFloat(fieldValue));
 							}
 						}
 						case "java.lang.Float" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Float.valueOf(fieldValue));
+								field.set(methodParameterInstance, Float.valueOf(fieldValue));
 							}
 						}
 						case "double" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Double.parseDouble(fieldValue));
+								field.set(methodParameterInstance, Double.parseDouble(fieldValue));
 							}
 						}
 						case "java.lang.Double" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, Double.valueOf(fieldValue));
+								field.set(methodParameterInstance, Double.valueOf(fieldValue));
 							}
 						}
 						case "java.math.BigDecimal" -> {
 							if (fieldValue != null) {
-								field.set(parameterTypeInstance, new BigDecimal(fieldValue));
+								field.set(methodParameterInstance, new BigDecimal(fieldValue));
 							}
 						}
 						}
 					}
-					methodParams.put(parameterName, parameterTypeInstance);
+					methodParams.put(parameterName, methodParameterInstance);
 				} catch (Exception e) {
 					log.error("", e);
 				}

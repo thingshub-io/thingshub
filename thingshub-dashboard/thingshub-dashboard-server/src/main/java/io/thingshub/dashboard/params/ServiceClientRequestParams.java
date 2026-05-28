@@ -17,16 +17,16 @@ import lombok.EqualsAndHashCode;
  * @author albert pi
  * @since 1.0.0
  */
-public class ClientUserRequestParams {
+public class ServiceClientRequestParams {
 
 	@Data
 	@EqualsAndHashCode(callSuper = false)
-	public static class QueryClientUserParams extends PageParams {
+	public static class QueryServiceClientParams extends PageParams {
 
 	}
 
 	@Data
-	public static class ClientUserFormParams {
+	public static class ServiceClientFormParams {
 
 		private Long id;
 
@@ -46,7 +46,7 @@ public class ClientUserRequestParams {
 		 * 业务系统名称
 		 */
 		@NotNull(message = "业务系统名称不能为空")
-		private String bizName;
+		private String serviceName;
 
 		/**
 		 * 备注说明
@@ -69,6 +69,29 @@ public class ClientUserRequestParams {
 		 */
 		@NotNull(message = "产品编号不能为空")
 		private List<String> productCodes;
+
+	}
+
+	@Data
+	public static class MessageAuthorityParams {
+
+		/**
+		 * 客户端用户名
+		 */
+		@NotBlank(message = "用户名不能为空")
+		protected String username;
+
+		/**
+		 * 产品编码
+		 */
+		@NotBlank(message = "产品编码不能为空")
+		private String productCode;
+
+		/**
+		 * 消息名称列表。空列表表示取消产品消息的所有授权
+		 */
+		@NotNull(message = "消息名称不能为空")
+		private List<String> messages;
 
 	}
 

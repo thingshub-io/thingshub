@@ -6,8 +6,8 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
-import io.thingshub.commons.ItemOption;
 import io.thingshub.commons.IdParam;
+import io.thingshub.commons.ItemOption;
 import io.thingshub.commons.LongId;
 import io.thingshub.commons.ServiceException;
 import io.thingshub.commons.model.Page;
@@ -82,7 +82,12 @@ public class ProtocolAdaptorController {
 			protocolAdaptorDetails.setCreateBy(userInfo.getName());
 			adaptorId = protocolAdaptorService.createProtocolAdaptor(protocolAdaptorDetails);
 		} else {
+			if (params.getScriptId() == null) {
+				throw new ServiceException("协议脚本ID不能为空");
+			}
+
 			protocolAdaptorDetails.setId(adaptorId);
+			protocolAdaptorDetails.setScriptId(params.getScriptId());
 			protocolAdaptorDetails.setUpdateBy(userInfo.getName());
 			protocolAdaptorService.updateProtocolAdaptor(protocolAdaptorDetails);
 		}

@@ -32,7 +32,7 @@ public class Scheduler {
 	@PostConstruct
 	public void init() {
 		ExecutorService taskExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-		this.wheelTimer = new HashedWheelTimer(Executors.defaultThreadFactory(), 10, TimeUnit.MILLISECONDS, 512, true, -1, taskExecutor);
+		this.wheelTimer = new HashedWheelTimer(Executors.defaultThreadFactory(), 10, TimeUnit.MILLISECONDS, 1024, true, -1, taskExecutor);
 	}
 
 	public void addTask(String group, String taskId, Action action, long delay, int times) {

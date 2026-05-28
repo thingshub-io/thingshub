@@ -11,6 +11,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+/**
+ * <p>
+ * 树结构处理工具类
+ * </p>
+ *
+ * @author albert pi
+ * @since 1.0.0
+ */
+
 public abstract class TreeUtils {
 
 	/**
@@ -127,8 +136,7 @@ public abstract class TreeUtils {
 	}
 
 	private static <E> List<E> makeChildren(E parent, List<E> allData, BiFunction<E, E, Boolean> parentCheck, BiConsumer<E, List<E>> children) {
-		return allData.stream().filter(x -> parentCheck.apply(parent, x)).peek(x -> children.accept(x, makeChildren(x, allData, parentCheck, children)))
-				.toList();
+		return allData.stream().filter(x -> parentCheck.apply(parent, x)).peek(x -> children.accept(x, makeChildren(x, allData, parentCheck, children))).toList();
 	}
 
 }

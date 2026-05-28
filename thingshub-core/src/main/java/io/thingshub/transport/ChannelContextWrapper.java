@@ -64,6 +64,8 @@ public class ChannelContextWrapper implements ChannelHandlerContext {
 
 	private TenantSettings tenantSettings;
 
+	private String username;
+
 	private String clientId;
 
 	private String clientAddr;
@@ -104,11 +106,12 @@ public class ChannelContextWrapper implements ChannelHandlerContext {
 		return OUTGOING_BUFFER.getIfPresent(packetKey);
 	}
 
-	public ChannelContextWrapper(@NonNull ChannelHandlerContext ctx, TenantSettings tenantSettings, String clientId, String clientAddr, int keepalive,
+	public ChannelContextWrapper(@NonNull ChannelHandlerContext ctx, TenantSettings tenantSettings, String username, String clientId, String clientAddr, int keepalive,
 			String protocolVersion, int sessionExpiryInterval) {
 		this.ctx = ctx;
 
 		this.tenantSettings = tenantSettings;
+		this.username = username;
 		this.clientId = clientId;
 		this.clientAddr = clientAddr;
 		this.protocolVersion = protocolVersion;
@@ -141,6 +144,10 @@ public class ChannelContextWrapper implements ChannelHandlerContext {
 
 	public TenantSettings getTenantSettings() {
 		return tenantSettings;
+	}
+
+	public String getUsername() {
+		return username;
 	}
 
 	public String getClientId() {

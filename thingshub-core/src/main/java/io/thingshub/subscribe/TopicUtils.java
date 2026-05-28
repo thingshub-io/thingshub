@@ -22,16 +22,6 @@ public class TopicUtils {
 	public static final String PREFIX_UNORDERED_SHARE = UNORDERED_SHARE + DELIMITER_CHAR;
 	public static final String PREFIX_ORDERED_SHARE = ORDERED_SHARE + DELIMITER_CHAR;
 
-	public static final String THING_TOPIC_PREFIX = "sys";
-	public static final String THING_PROPERTY_POST_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/property/post/%s";
-	public static final String THING_PROPERTY_POST_REPLY_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/property/post/reply/%s";
-	public static final String THING_SERVICE_CALL_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/service/call/%s";
-	public static final String THING_SERVICE_CALL_REPLY_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/service/call/reply/%s";
-	public static final String THING_EVENT_POST_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/event/post/%s";
-	public static final String THING_EVENT_POST_REPLY_TOPIC_FORMAT = THING_TOPIC_PREFIX + "/thing/%s/%s/event/post/reply/%s";
-
-	public static final String CLIENT_ID_PLACEHOLDER_IN_TOPIC = "${thingshub.client.id}";
-
 	public static boolean isValidTopic(String topic, int maxLevelLength, int maxLevel, int maxLength) {
 		assert maxLength <= 65535 && maxLevelLength <= maxLength;
 
@@ -310,10 +300,6 @@ public class TopicUtils {
 		}
 
 		return true;
-	}
-
-	public static boolean isInternalTopic(String publishTopic) {
-		return publishTopic.indexOf("sys/internal") > -1;
 	}
 
 }

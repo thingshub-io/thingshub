@@ -24,7 +24,7 @@ import io.thingshub.acl.AclManager;
 import io.thingshub.subscribe.ClientUnsubscribe;
 import io.thingshub.subscribe.SubscriptionManager;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5UnsubAckReasonCode;
 import io.thingshub.transport.mqtt.packet.UnsubscribePacket;
 import io.thingshub.transport.throttler.ResourceThrottler;
@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class UnsubscribeProcessor implements Processor<MqttChannelContextWrapper, UnsubscribePacket> {
+public class UnsubscribeProcessor implements Processor<MqttChannelContext, UnsubscribePacket> {
 
 	@Inject
 	private AclManager aclManager;
@@ -53,7 +53,7 @@ public class UnsubscribeProcessor implements Processor<MqttChannelContextWrapper
 	private SubscriptionManager subscriptionManager;
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, UnsubscribePacket packet) {
+	public void process(MqttChannelContext ctx, UnsubscribePacket packet) {
 		List<ClientUnsubscribe> clientUnsubscribes = (List<ClientUnsubscribe>) packet.getPayload().getParams();
 		log.info("Client send UNSUBSCRIBE packet, topics: {}", clientUnsubscribes);
 
@@ -107,7 +107,7 @@ public class UnsubscribeProcessor implements Processor<MqttChannelContextWrapper
 		});
 	}
 
-	private UnsubResult check(MqttChannelContextWrapper ctx, ClientUnsubscribe clientUnsubscribe) {
+	private UnsubResult check(MqttChannelContext ctx, ClientUnsubscribe clientUnsubscribe) {
 		int maxTopicLevelLength = ctx.getTenantSettings().getMaxTopicLevelLength();
 		int maxTopicLevels = ctx.getTenantSettings().getMaxTopicLevels();
 		int maxTopicLength = ctx.getTenantSettings().getMaxTopicLength();
@@ -127,7 +127,7 @@ public class UnsubscribeProcessor implements Processor<MqttChannelContextWrapper
 	}
 
 	@SuppressWarnings("incomplete-switch")
-	private MqttUnsubAckMessage buildV3UnsubAck(MqttChannelContextWrapper ctx, int packetId, List<ClientUnsubscribe> clientUnsubscribes,
+	private MqttUnsubAckMessage buildV3UnsubAck(MqttChannelContext ctx, int packetId, List<ClientUnsubscribe> clientUnsubscribes,
 			List<UnsubResult> unsubResults) {
 		for (int i = 0; i < unsubResults.size(); i++) {
 			switch (unsubResults.get(i)) {
@@ -140,7 +140,7 @@ public class UnsubscribeProcessor implements Processor<MqttChannelContextWrapper
 		return MqttMessageBuilders.unsubAck().packetId(packetId).build();
 	}
 
-	private MqttUnsubAckMessage buildV5UnsubAck(MqttChannelContextWrapper ctx, int packetId, List<ClientUnsubscribe> clientUnsubscribes,
+	private MqttUnsubAckMessage buildV5UnsubAck(MqttChannelContext ctx, int packetId, List<ClientUnsubscribe> clientUnsubscribes,
 			List<UnsubResult> unsubResults) {
 		List<Short> reasonCodes = unsubResults.stream().map(unsubResult -> {
 			return switch (unsubResult) {

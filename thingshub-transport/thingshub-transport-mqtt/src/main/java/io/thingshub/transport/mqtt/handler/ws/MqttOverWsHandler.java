@@ -7,16 +7,16 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.thingshub.Broker;
-import io.thingshub.transport.mqtt.MqttWsServerConfig;
+import io.thingshub.transport.mqtt.MqttWsTransportConfig;
 import io.thingshub.transport.mqtt.codec.WebsocketFrameEncoder;
 import io.thingshub.transport.mqtt.codec.WebsocketFrameDecoder;
 import io.thingshub.transport.mqtt.handler.MQTTPreludeHandler;
 
 public class MqttOverWsHandler extends ChannelInboundHandlerAdapter {
 
-	private final MqttWsServerConfig mqttWsServerConfig;
+	private final MqttWsTransportConfig mqttWsServerConfig;
 
-	public MqttOverWsHandler(MqttWsServerConfig mqttWsServerConfig) {
+	public MqttOverWsHandler(MqttWsTransportConfig mqttWsServerConfig) {
 		this.mqttWsServerConfig = mqttWsServerConfig;
 	}
 

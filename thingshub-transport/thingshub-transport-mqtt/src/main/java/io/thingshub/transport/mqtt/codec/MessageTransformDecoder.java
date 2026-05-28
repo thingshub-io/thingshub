@@ -26,7 +26,7 @@ import io.thingshub.script.ScriptEngine;
 import io.thingshub.script.ScriptEngineFactory;
 import io.thingshub.script.ScriptException;
 import io.thingshub.transport.ChannelContextWrapper;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.utils.MessageUtils;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -58,11 +58,11 @@ public class MessageTransformDecoder extends MessageToMessageDecoder<MqttMessage
 			try {
 				String clientId = ctx.channel().attr(ATTRIBUTE_CLIENT_ID).get();
 				byte[] rawPayloadBytes = MessageUtils.readByteBuf(publishMessage.payload());
-				MqttChannelContextWrapper.bufferIncoming(
+				MqttChannelContext.bufferIncoming(
 						ctx.channel().id().asLongText().concat("_" + publishMessage.variableHeader().packetId()).concat("_payload"), rawPayloadBytes);
 
 				switch (ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).get()) {
-				case DEVICE -> {
+				case DEVICE_CLIENT -> {
 					String scriptLang = ctx.channel().attr(ATTRIBUTE_SCRIPT_LANG).get();
 					byte[] payloadBytes = null;
 					if (scriptLang != null) {// device send custom message
@@ -94,7 +94,7 @@ public class MessageTransformDecoder extends MessageToMessageDecoder<MqttMessage
 					out.add(publishMessage.replace(payloadBuf4Device));
 					publishMessage.release();
 				}
-				case CLIENT_USER -> {// business client send standard message
+				case SERVICE_CLIENT -> {// business client send standard message
 					ByteBuf payloadBuf4SysClient = Unpooled.copiedBuffer(rawPayloadBytes);
 					out.add(publishMessage.replace(payloadBuf4SysClient));
 				}

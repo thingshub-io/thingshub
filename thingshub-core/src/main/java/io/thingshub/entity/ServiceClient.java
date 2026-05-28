@@ -12,14 +12,14 @@ import lombok.Data;
 
 /**
  * <p>
- * Client User
+ * Upstream Service Client
  * </p>
  *
  * @author albert pi
  * @since 1.0.0
  */
 @Data
-public class ClientUser implements Serializable {
+public class ServiceClient implements Serializable {
 
 	private static final long serialVersionUID = -8225088207420924112L;
 
@@ -31,25 +31,25 @@ public class ClientUser implements Serializable {
 	private Long id;
 
 	/**
-	 * User Name
+	 * User Name Used by Upstream Service
 	 */
 	@QuerySqlField(index = true, notNull = true)
 	private String username;
 
 	/**
-	 * User's Password
+	 * Password
 	 */
 	@QuerySqlField(notNull = true)
 	private String password;
 
 	/**
-	 * Upstream Business Service Name
+	 * Upstream Service Name
 	 */
-	@QuerySqlField(name = "biz_name")
-	private String bizName;
+	@QuerySqlField(name = "service_name")
+	private String serviceName;
 
 	/**
-	 * Products Bound to Client User
+	 * Products Bound to Service
 	 */
 	@QuerySqlField(name = "product_codes")
 	private String productCodes;

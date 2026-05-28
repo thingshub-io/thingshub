@@ -2,12 +2,10 @@ package io.thingshub.transport.mqtt.processor;
 
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.PUBLICATION_EXPIRY_INTERVAL;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.REASON_STRING;
-import static io.thingshub.commons.model.MessageType.REPLY;
-import static io.thingshub.commons.model.MessageType.REQUEST;
-import static io.thingshub.commons.model.ThingModelType.EVENT;
-import static io.thingshub.commons.model.ThingModelType.PROPERTY;
-import static io.thingshub.commons.model.ThingModelType.SERVICE;
-import static io.thingshub.subscribe.TopicUtils.THING_TOPIC_PREFIX;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_POST;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_PROPERTY_POST;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_REPLY;
+import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_POST;
 import static io.thingshub.transport.ChannelContextWrapper.ATTRIBUTE_CLIENT_TYPE;
 import static io.thingshub.transport.ChannelContextWrapper.ATTRIBUTE_PRODUCT_CODE;
 import static io.thingshub.transport.mqtt.handler.v5.MQTT5DisconnectReasonCode.QuotaExceeded;
@@ -37,18 +35,19 @@ import io.netty.handler.codec.mqtt.MqttPubReplyMessageVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.thingshub.acl.AclAction;
 import io.thingshub.acl.AclManager;
+import io.thingshub.commons.model.MessageType;
 import io.thingshub.commons.model.ThingshubMessage;
-import io.thingshub.entity.MessageSpec;
+import io.thingshub.entity.MessageDefinition;
 import io.thingshub.entity.Publication;
-import io.thingshub.service.MessageSpecService;
+import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.PublicationService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientType;
 import io.thingshub.subscribe.SubscriptionManager;
 import io.thingshub.transport.DistributeResult;
 import io.thingshub.transport.Processor;
-import io.thingshub.transport.PubMethod;
-import io.thingshub.transport.mqtt.MqttChannelContextWrapper;
+import io.thingshub.transport.PublishWay;
+import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubRecReasonCode;
 import io.thingshub.transport.mqtt.packet.PublishPacket;
 import io.thingshub.transport.mqtt.service.Retain;
@@ -66,7 +65,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class PublishProcessor implements Processor<MqttChannelContextWrapper, PublishPacket> {
+public class PublishProcessor implements Processor<MqttChannelContext, PublishPacket> {
 
 	@Inject
 	private AclManager aclManager;
@@ -81,7 +80,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 	private SubscriptionManager subscriptionManager;
 
 	@Inject
-	private MessageSpecService messageSpecService;
+	private MessageDefinitionService messageDefinitionService;
 
 	@Inject
 	private IdGenerator idGenerator;
@@ -94,7 +93,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 	};
 
 	@Override
-	public void process(MqttChannelContextWrapper ctx, PublishPacket packet) {
+	public void process(MqttChannelContext ctx, PublishPacket packet) {
 		String theTopic = packet.getTopic();
 		Integer theQos = (Integer) packet.getProperties().get("qos");
 		if (log.isDebugEnabled()) {
@@ -231,7 +230,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 				} else {
 					ctx.incReceivingCount();
 					ctx.addUsingPacketId(packet.getPacketId());
-					MqttChannelContextWrapper.bufferIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"), packet.getPacketId());
+					MqttChannelContext.bufferIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"), packet.getPacketId());
 
 					boolean abortFlag = false;
 
@@ -331,7 +330,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 							ctx.decReceivingCount();
 							ctx.removeUsingPacketId(packet.getPacketId());
 
-							MqttChannelContextWrapper.pollIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"));
+							MqttChannelContext.pollIncoming(ctx.getChannelId().concat("_" + packet.getPacketId()).concat("_pub"));
 						}
 					}
 				}
@@ -342,11 +341,11 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 			}
 			}
 		} finally {
-			MqttChannelContextWrapper.pollIncoming(ctx.channel().id().asLongText().concat("_" + packet.getPacketId()).concat("_payload"));
+			MqttChannelContext.pollIncoming(ctx.channel().id().asLongText().concat("_" + packet.getPacketId()).concat("_payload"));
 		}
 	}
 
-	private PubResult doPub(MqttChannelContextWrapper ctx, PublishPacket packet) {
+	private PubResult doPub(MqttChannelContext ctx, PublishPacket packet) {
 		DistributeResult distResult = distributePublication(ctx, packet);
 		if (!(Boolean) packet.getProperties().get("isRetain")) {
 			return new PubResult(distResult, RetainResult.RETAINED);
@@ -356,7 +355,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 		}
 	}
 
-	private DistributeResult distributePublication(MqttChannelContextWrapper ctx, PublishPacket packet) {
+	private DistributeResult distributePublication(MqttChannelContext ctx, PublishPacket packet) {
 		ThingshubMessage stdMessage = packet.getPayload();
 		if (stdMessage == null) {
 			return DistributeResult.OK;
@@ -366,43 +365,24 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 		ClientType clientType = ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).get();
 		String rawTopic = packet.getTopic();
 		String stdTopic = null;
-		if (clientType == ClientType.DEVICE) {
+		if (clientType == ClientType.DEVICE_CLIENT) {
 			String productCode = ctx.channel().attr(ATTRIBUTE_PRODUCT_CODE).get();
-			String subTopic = "";
 
-			MessageSpec messageSpec = messageSpecService.getMessageSpec(msgName);
-			if (messageSpec == null) {
-				log.warn("Not supported message name {} and will be ignored", msgName);
-				return DistributeResult.NO_MATCH;
-			} else if (messageSpec.getCat().equals(PROPERTY.name())) {
-				if (messageSpec.getType().equals(REPLY.name())) {
-					log.warn("Wrong message name {} and will be ignored", msgName);
-					return DistributeResult.NO_MATCH;
-				} else {
-
-					// 参数校验
-					subTopic = subTopic.concat(PROPERTY.name().toLowerCase()).concat("/post/").concat(msgName);
-				}
-			} else if (messageSpec.getCat().equals(SERVICE.name())) {
-				if (messageSpec.getType().equals(REQUEST.name())) {
-					log.warn("Wrong message name {} and will be ignored", msgName);
-					return DistributeResult.NO_MATCH;
-				} else {
-					// 参数校验
-					subTopic = subTopic.concat(SERVICE.name().toLowerCase()).concat("/call/reply/").concat(msgName);
-				}
-			} else if (messageSpec.getCat().equals(EVENT.name())) {
-				if (messageSpec.getType().equals(REPLY.name())) {
-					log.warn("Wrong message name {} and will be ignored", msgName);
-					return DistributeResult.NO_MATCH;
-				} else {
-					// 参数校验
-					subTopic = subTopic.concat(EVENT.name().toLowerCase()).concat("/post/").concat(msgName);
-				}
+			MessageDefinition messageDefinition = messageDefinitionService.getMessageDefinition(productCode, msgName);
+			if (messageDefinition == null) {
+				log.warn("Not supported message name {} and ignore publishing", msgName);
+				return DistributeResult.ERROR;
+			} else {
+				// TODO 校验参数，不合法返回DistributeResult.REJECTED
+				stdTopic = switch (MessageType.of(messageDefinition.getType())) {
+				case PROPERTY_POST -> String.format(THING_TOPIC_PROPERTY_POST, productCode, ctx.getClientId(), msgName);
+				case SERVICE_FUNCTION_REPLY -> String.format(THING_TOPIC_SERVICE_FUNCTION_REPLY, productCode, ctx.getClientId(), msgName);
+				case SERVICE_REQUEST_POST -> String.format(THING_TOPIC_SERVICE_REQUEST_POST, productCode, ctx.getClientId(), msgName);
+				case EVENT_POST -> String.format(THING_TOPIC_EVENT_POST, productCode, ctx.getClientId(), msgName);
+				default -> "";
+				};
 			}
-
-			stdTopic = THING_TOPIC_PREFIX.concat("/thing/").concat(productCode + "/" + ctx.getClientId() + "/").concat(subTopic);
-		} else if (clientType == ClientType.CLIENT_USER) {
+		} else if (clientType == ClientType.SERVICE_CLIENT) {
 			stdTopic = rawTopic;
 		}
 
@@ -412,13 +392,14 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 		Calendar calendar = Calendar.getInstance();
 		calendar.add(Calendar.SECOND, messageExpiryInterval);
 
-		byte[] rawPayloadBytes = (byte[]) MqttChannelContextWrapper.pollIncoming(ctx.channel().id().asLongText().concat("_" + packet.getPacketId()).concat("_payload"));
+		byte[] rawPayloadBytes = (byte[]) MqttChannelContext.pollIncoming(ctx.channel().id().asLongText().concat("_" + packet.getPacketId()).concat("_payload"));
 
 		long publicationId = idGenerator.nextId();
 		Publication publication = new Publication();
 		publication.setId(publicationId);
-		publication.setPublisherId(ctx.getClientId());
-		publication.setPubMethod(PubMethod.PUBLISH.value());
+		publication.setUsername(ctx.getUsername());
+		publication.setClientId(ctx.getClientId());
+		publication.setPubWay(PublishWay.PUBLISH.value());
 		publication.setTopic(rawTopic);
 		publication.setStdTopic(stdTopic);
 		publication.setProps(packet.getProperties());
@@ -437,7 +418,7 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 		return DistributeResult.OK;
 	}
 
-	private RetainResult retainPublication(MqttChannelContextWrapper ctx, PublishPacket packet) {
+	private RetainResult retainPublication(MqttChannelContext ctx, PublishPacket packet) {
 		String rawTopic = packet.getTopic();
 		if (packet.getPayload() == null) {
 			retainManager.cleanRetain(rawTopic);
@@ -461,22 +442,24 @@ public class PublishProcessor implements Processor<MqttChannelContextWrapper, Pu
 
 			ClientType clientType = ctx.channel().attr(ATTRIBUTE_CLIENT_TYPE).get();
 			String stdTopic = null;
-			if (clientType == ClientType.DEVICE) {
+			if (clientType == ClientType.DEVICE_CLIENT) {
 				String productCode = ctx.channel().attr(ATTRIBUTE_PRODUCT_CODE).get();
 				String msgName = stdMessage.getName();
-				String subTopic = "";
 
-				MessageSpec messageSpec = messageSpecService.getMessageSpec(msgName);
-				if (messageSpec.getCat().equals(PROPERTY.name())) {
-					subTopic = subTopic.concat(PROPERTY.name().toLowerCase()).concat("/post/").concat(msgName);
-				} else if (messageSpec.getCat().equals(SERVICE.name()) && messageSpec.getType().equals(REQUEST.name())) {
-					subTopic = subTopic.concat(SERVICE.name().toLowerCase()).concat("/call/reply/").concat(msgName);
-				} else if (messageSpec.getCat().equals(EVENT.name())) {
-					subTopic = subTopic.concat(EVENT.name().toLowerCase()).concat("/post/").concat(msgName);
+				MessageDefinition messageDefinition = messageDefinitionService.getMessageDefinition(productCode, msgName);
+				if (messageDefinition == null) {
+					log.warn("Not supported message name {} and ignore retaining", msgName);
+					return RetainResult.ERROR;
+				} else {
+					stdTopic = switch (MessageType.of(messageDefinition.getType())) {
+					case PROPERTY_POST -> String.format(THING_TOPIC_PROPERTY_POST, productCode, ctx.getClientId(), msgName);
+					case SERVICE_FUNCTION_REPLY -> String.format(THING_TOPIC_SERVICE_FUNCTION_REPLY, productCode, ctx.getClientId(), msgName);
+					case SERVICE_REQUEST_POST -> String.format(THING_TOPIC_SERVICE_REQUEST_POST, productCode, ctx.getClientId(), msgName);
+					case EVENT_POST -> String.format(THING_TOPIC_EVENT_POST, productCode, ctx.getClientId(), msgName);
+					default -> null;
+					};
 				}
-
-				stdTopic = THING_TOPIC_PREFIX.concat("/thing/").concat(productCode + "/" + ctx.getClientId() + "/").concat(subTopic);
-			} else if (clientType == ClientType.CLIENT_USER) {
+			} else if (clientType == ClientType.SERVICE_CLIENT) {
 				stdTopic = rawTopic;
 			}
 

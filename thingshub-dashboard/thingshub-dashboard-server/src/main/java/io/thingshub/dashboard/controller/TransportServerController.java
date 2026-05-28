@@ -2,12 +2,14 @@ package io.thingshub.dashboard.controller;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
-import io.thingshub.Broker;
-import io.thingshub.commons.ItemOption;
+import io.thingshub.dashboard.params.TransportServerRequestParams.PrehandleScriptParams;
+import io.thingshub.entity.TransportServer;
+import io.thingshub.http.HttpMethod;
 import io.thingshub.http.annotation.Controller;
+import io.thingshub.http.annotation.RequestBody;
 import io.thingshub.http.annotation.RequestMapping;
+import io.thingshub.service.TransportServerService;
+import jakarta.inject.Inject;
 
 /**
  * <p>
@@ -21,15 +23,17 @@ import io.thingshub.http.annotation.RequestMapping;
 @Controller
 public class TransportServerController {
 
-	@RequestMapping(path = "/transport-server/options")
-	public List<ItemOption> listTransportServerOptions() {
-		List<ItemOption> options = Lists.newArrayList();
+	@Inject
+	private TransportServerService transportServerService;
 
-		for (String serverName : Broker.getServerNames()) {
-			options.add(new ItemOption(serverName, serverName));
-		}
+	@RequestMapping(path = "/transport-server/list")
+	public List<TransportServer> listTransportServers() {
+		return transportServerService.list();
+	}
 
-		return options;
+	@RequestMapping(method = HttpMethod.POST, path = "/transport-server/prehandle-script")
+	public void setPrehandleScript(@RequestBody PrehandleScriptParams params) {
+		transportServerService.setPrehandleScript(params.getServerName(), params.getScriptLang(), params.getScriptContent());
 	}
 
 }
