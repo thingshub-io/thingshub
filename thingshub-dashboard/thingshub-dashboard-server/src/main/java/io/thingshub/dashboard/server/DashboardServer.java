@@ -100,17 +100,6 @@ public class DashboardServer implements Server {
 	}
 
 	private void onSuccess(DisposableServer disposableServer) {
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			Set<Interceptor> interceptors = requestHandler.getInterceptorChain().getInterceptors();
-			if (interceptors != null) {
-				interceptors.forEach(interceptor -> {
-					if (interceptor instanceof UserInterceptor userInterceptor) {
-						userInterceptor.destroy();
-					}
-				});
-			}
-		}));
-
 		log.info("Thingshub Dashboard Server has started on port {}", config.getPort());
 	}
 
