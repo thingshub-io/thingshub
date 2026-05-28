@@ -16,10 +16,10 @@ import reactor.netty.Connection;
 import reactor.netty.DisposableServer;
 
 @Slf4j(topic = "io.thingshub.transport.server")
-public class MqttWsServer implements Server {
+public class MqttWsTransportServer implements Server {
 
 	@Inject
-	private MqttWsTransportConfig config;
+	private MqttWsTransportConfig mqttWsTransportConfig;
 
 	private DisposableServer disposableServer;
 
@@ -30,12 +30,12 @@ public class MqttWsServer implements Server {
 
 	@Override
 	public String name() {
-		return config.getName();
+		return mqttWsTransportConfig.getName();
 	}
 
 	@Override
 	public Mono<Server> start() {
-		return bind(config).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
+		return bind(mqttWsTransportConfig).doOnNext(this::afterBinding).doOnSuccess(this::onSuccess).doOnError(this::onError).thenReturn(this).cast(Server.class);
 	}
 
 	@Override
@@ -43,9 +43,10 @@ public class MqttWsServer implements Server {
 		connection.addHandlerLast(HttpResponseEncoder.class.getSimpleName(), new HttpResponseEncoder());
 		connection.addHandlerLast(HttpRequestDecoder.class.getSimpleName(), new HttpRequestDecoder());
 		connection.addHandlerLast(HttpObjectAggregator.class.getSimpleName(), new HttpObjectAggregator(65536));
-		connection.addHandlerLast(WebSocketOnlyHandler.class.getSimpleName(), new WebSocketOnlyHandler(config.getPath()));
-		connection.addHandlerLast(WebSocketServerProtocolHandler.class.getSimpleName(), new WebSocketServerProtocolHandler(config.getPath(), "mqtt, mqttv3.1, mqttv3.1.1"));
-		connection.addHandlerLast(MqttOverWsHandler.class.getSimpleName(), new MqttOverWsHandler(config));
+		connection.addHandlerLast(WebSocketOnlyHandler.class.getSimpleName(), new WebSocketOnlyHandler(mqttWsTransportConfig.getPath()));
+		connection.addHandlerLast(WebSocketServerProtocolHandler.class.getSimpleName(),
+				new WebSocketServerProtocolHandler(mqttWsTransportConfig.getPath(), "mqtt, mqttv3.1, mqttv3.1.1"));
+		connection.addHandlerLast(MqttOverWsHandler.class.getSimpleName(), new MqttOverWsHandler(mqttWsTransportConfig));
 	}
 
 	private void afterBinding(DisposableServer disposableServer) {
@@ -58,7 +59,7 @@ public class MqttWsServer implements Server {
 	}
 
 	private void onSuccess(DisposableServer disposableServer) {
-		log.info("Thingshub MQTT server over websocket has started on port {}", config.getPort());
+		log.info("Thingshub MQTT server over websocket has started on port {}", mqttWsTransportConfig.getPort());
 	}
 
 	private void onError(Throwable e) {
