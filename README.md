@@ -97,18 +97,41 @@ mvn clean install
   ./shutdown.sh
   ```
 
+## 5、项目结构
+
+```lua
+thingshub
+├── benchmark -- 基准测试脚本
+├── build -- 构建输出
+├── thingshub-commons -- 与thingshub-client共用的组件
+├── thingshub-connector -- 连接器
+│   ├── thingshub-connector-clickhouse -- clickhouse连接器
+│   ├── thingshub-connector-kafka -- Kafka连接器
+│   ├── thingshub-connector-mqtt -- MQTT Broker连接器
+│   ├── thingshub-connector-rocketmq -- RocketMQ连接器
+│   ├── thingshub-connector-tdengine -- Tdegine连接器
+├── thingshub-core -- Thingshub核心模块
+├── thingshub-dashboard -- Thingshub控制台管理模块
+├── thingshub-mcp -- Thingshub MCP服务器
+├── thingshub-starter -- Thingshub启动代码
+├── thingshub-transport -- Thingshub标准协议服务器实现
+│   ├── thingshub-transport-gb28181 -- 视频监控设备国标实现
+│   ├── thingshub-transport-http -- 设备HTTP通信协议实现
+│   ├── thingshub-transport-mqtt -- 设备MQTT通信协议实现
+│   ├── thingshub-transport-tcp -- 设备TCP通信协议实现
+```
 	
-## 5、技术栈
+## 6、技术栈
 - [reactor-netty](https://projectreactor.io/)
 - [Ignite](https://ignite.apache.org/)
 - [Guice](https://github.com/google/guice)
 - ......
 	
-## 6、参考资料
+## 7、参考资料
 - [MQTT-3.1.1规范](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)
 - [MQTT-5.0规范](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html)
 - [GB/T 28181-2022规范](http://c.gb688.cn/bzgk/gb/showGb?type=online&hcno=8BBC2475624A6C31DC34A28052B3923D&request_locale=zh)
 - [BifroMQ](https://bifromq.apache.org/)
 
-## 7、联系方式
+## 8、联系方式
 vx: albert394005
