@@ -107,6 +107,7 @@ mvn clean install
 解压`thingshub-<VERSION>-standalone.tar.gz`文件，你将看到以下目录结构：
 
 ```
+%THINGSHUB_HOME%
 |- bin
 |- doc
 |- etc
