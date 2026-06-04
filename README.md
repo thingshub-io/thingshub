@@ -97,7 +97,7 @@ cd thingshub
 mvn clean install
 ```
 
-构建输出文件位于 `/build/target`
+构建输出位于 `/build/target`
  
 * `thingshub-<VERSION>-standalone.tar.gz`
 * `thingshub-<VERSION>-standalone-windows.zip`
