@@ -18,6 +18,7 @@
 		<module>thingshub-transport-mqtt</module>
 		<module>thingshub-transport-tcp</module>
 		<module>thingshub-transport-gb28181</module>
+		<module>thingshub-transport-onvif</module>
 	</modules>
 
 </project>
