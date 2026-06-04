@@ -64,7 +64,9 @@ cd <YOUR_WORKSPACE>
 git clone https://github.com/thingshub-io/thingshub thingshub
 ```
 
-配置maven toolchains：
+#### 4.1.3、构建
+
+首先，配置maven toolchains：
 ```
 <toolchain>
   <type>jdk</type>
@@ -89,7 +91,6 @@ git clone https://github.com/thingshub-io/thingshub thingshub
 </toolchain>
 ```
 
-#### 4.1.3、构建
 进入项目根目录，执行以下命令:
 
 ```
@@ -97,7 +98,7 @@ cd thingshub
 mvn clean install
 ```
 
-构建输出位于 `/build/target`
+构建输出位于 `/build/target`：
  
 * `thingshub-<VERSION>-standalone.tar.gz`
 * `thingshub-<VERSION>-standalone-windows.zip`
