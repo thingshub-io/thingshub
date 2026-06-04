@@ -48,7 +48,7 @@ Thingshub物联网平台的架构如下图所示：
 
 ## 4、快速开始
 
-### 4.1、源码构建
+### 4.1、构建安装包
 
 #### 4.1.1、前提条件
 
@@ -64,7 +64,7 @@ cd <YOUR_WORKSPACE>
 git clone https://github.com/thingshub-io/thingshub thingshub
 ```
 
-#### 4.1.3、构建
+#### 4.1.3、编译打包
 
 首先，配置maven toolchains：
 ```
@@ -95,10 +95,10 @@ git clone https://github.com/thingshub-io/thingshub thingshub
 
 ```
 cd thingshub
-mvn clean install
+mvn clean package
 ```
 
-构建输出位于 `/build/target`：
+安装包位于 `/build/target`：
  
 * `thingshub-<VERSION>-standalone.tar.gz`
 * `thingshub-<VERSION>-standalone-windows.zip`
