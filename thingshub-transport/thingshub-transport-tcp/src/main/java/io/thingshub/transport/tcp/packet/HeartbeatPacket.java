@@ -1,7 +1,7 @@
 package io.thingshub.transport.tcp.packet;
 
 import cn.hutool.core.date.DateUtil;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.transport.Packet;
 import io.thingshub.transport.TransportPacket;
 import lombok.Getter;

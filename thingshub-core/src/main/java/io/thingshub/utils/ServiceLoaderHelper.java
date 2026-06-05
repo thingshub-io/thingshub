@@ -1,4 +1,4 @@
-package io.thingshub.commons.utils;
+package io.thingshub.utils;
 
 import java.util.Optional;
 import java.util.ServiceLoader;

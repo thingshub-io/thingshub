@@ -100,8 +100,8 @@ mvn clean package
 
 安装包位于 `/build/target`：
  
-* `thingshub-<VERSION>-standalone.tar.gz`
-* `thingshub-<VERSION>-standalone-windows.zip`
+* `thingshub-<VERSION>-linux.tar.gz`
+* `thingshub-<VERSION>-windows.zip`
 
 ### 4.2、启动运行
 
@@ -132,11 +132,10 @@ mvn clean package
 
 ## 5、项目结构
 
-```lua
+```
 thingshub
 ├── benchmark -- 基准测试脚本
 ├── build -- 构建输出
-├── thingshub-commons -- 与thingshub-client共用的组件
 ├── thingshub-connector -- 连接器
 │   ├── thingshub-connector-clickhouse -- clickhouse连接器
 │   ├── thingshub-connector-kafka -- Kafka连接器

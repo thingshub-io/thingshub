@@ -30,7 +30,7 @@ import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttProperties.StringProperty;
 import io.netty.handler.codec.mqtt.MqttUnacceptableProtocolVersionException;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.StreamDirection;
+import io.thingshub.commons.StreamDirection;
 import io.thingshub.transport.mqtt.MqttTransportConfig;
 import io.thingshub.transport.mqtt.handler.v3.MQTT3ConnectHandler;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5ConnectHandler;

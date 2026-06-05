@@ -1,7 +1,7 @@
 package io.thingshub.transport.tcp.handler;
 
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
 import static io.thingshub.transport.ChannelContextWrapper.ATTRIBUTE_CURRENT_SERVER_NAME;
 
 import java.net.InetAddress;
@@ -29,9 +29,9 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.traffic.ChannelTrafficShapingHandler;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.MessageType;
-import io.thingshub.commons.model.StreamDirection;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.MessageType;
+import io.thingshub.commons.StreamDirection;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Connection;
 import io.thingshub.entity.MessageDefinition;

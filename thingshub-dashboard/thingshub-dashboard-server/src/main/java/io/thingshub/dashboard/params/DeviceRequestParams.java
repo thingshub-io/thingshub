@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 import javax.validation.constraints.NotBlank;
 
-import io.thingshub.commons.model.PageParams;
+import io.thingshub.commons.PageParams;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

@@ -1,8 +1,8 @@
 package io.thingshub.subscribe;
 
-import static io.thingshub.commons.model.ThingshubConstants.THINGSHUB_CLIENT_ID_PLACEHOLDER;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THINGSHUB_CLIENT_ID_PLACEHOLDER;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
 import static io.thingshub.subscribe.TopicUtils.DELIMITER;
 import static io.thingshub.subscribe.TopicUtils.UNORDERED_SHARE;
 import static io.thingshub.subscribe.TopicUtils.isTopicMatch;
@@ -21,7 +21,7 @@ import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
 
 import cn.hutool.db.sql.Condition;
-import io.thingshub.commons.model.MessageType;
+import io.thingshub.commons.MessageType;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.GroupSelection;
 import io.thingshub.entity.MessageDefinition;

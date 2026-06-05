@@ -20,7 +20,7 @@ import io.thingshub.Broker;
 import io.thingshub.commons.Result;
 import io.thingshub.commons.ServiceException;
 import io.thingshub.commons.SysException;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.ScriptInfo;
 import io.thingshub.http.MultipartFile;

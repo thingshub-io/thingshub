@@ -41,20 +41,20 @@ public class TransportServerService extends BaseService<Long, TransportServer> {
 
 	public Long saveTransportServer(String serverName, String transport) throws ServiceException {
 		List<Condition> qryConditions = Lists.newArrayList(new Condition("server_name", serverName));
-		TransportServer transportInfo = this.getOne(qryConditions);
-		if (transportInfo == null) {
-			transportInfo = new TransportServer();
-			transportInfo.setId(idGenerator.nextId());
+		TransportServer transportServer = this.getOne(qryConditions);
+		if (transportServer == null) {
+			transportServer = new TransportServer();
+			transportServer.setId(idGenerator.nextId());
 		}
 
-		transportInfo.setServerName(serverName);
-		transportInfo.setTransport(transport);
-		this.save(transportInfo.getId(), transportInfo);
+		transportServer.setServerName(serverName);
+		transportServer.setTransport(transport);
+		this.save(transportServer.getId(), transportServer);
 
-		return transportInfo.getId();
+		return transportServer.getId();
 	}
 
-	public void setPrehandleScript(String serverName, String scriptLang, String scriptContent) {
+	public void setPrehandler(String serverName, String scriptLang, String scriptContent) {
 		List<Condition> qryConditions = Lists.newArrayList(new Condition("server_name", serverName));
 		TransportServer transportServer = this.getOne(qryConditions);
 

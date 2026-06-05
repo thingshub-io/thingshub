@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import cn.hutool.db.sql.Condition;
-import io.thingshub.commons.model.Page;
+import io.thingshub.commons.Page;
 import io.thingshub.entity.Publication;
 import io.thingshub.ioc.Service;
 import io.thingshub.service.base.BaseService;

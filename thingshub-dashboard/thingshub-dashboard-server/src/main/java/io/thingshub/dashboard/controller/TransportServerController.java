@@ -2,7 +2,7 @@ package io.thingshub.dashboard.controller;
 
 import java.util.List;
 
-import io.thingshub.dashboard.params.TransportServerRequestParams.PrehandleScriptParams;
+import io.thingshub.dashboard.params.TransportServerRequestParams.PrehandlerParams;
 import io.thingshub.entity.TransportServer;
 import io.thingshub.http.HttpMethod;
 import io.thingshub.http.annotation.Controller;
@@ -31,9 +31,9 @@ public class TransportServerController {
 		return transportServerService.list();
 	}
 
-	@RequestMapping(method = HttpMethod.POST, path = "/transport-server/prehandle-script")
-	public void setPrehandleScript(@RequestBody PrehandleScriptParams params) {
-		transportServerService.setPrehandleScript(params.getServerName(), params.getScriptLang(), params.getScriptContent());
+	@RequestMapping(method = HttpMethod.POST, path = "/transport-server/prehandler")
+	public void setPrehandler(@RequestBody PrehandlerParams params) {
+		transportServerService.setPrehandler(params.getServerName(), params.getScriptLang(), params.getScriptContent());
 	}
 
 }

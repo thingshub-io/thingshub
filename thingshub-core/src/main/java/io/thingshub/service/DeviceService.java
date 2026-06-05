@@ -6,8 +6,8 @@ import java.util.Map;
 import com.google.common.collect.Lists;
 
 import cn.hutool.db.sql.Condition;
+import io.thingshub.commons.Page;
 import io.thingshub.commons.ServiceException;
-import io.thingshub.commons.model.Page;
 import io.thingshub.entity.Device;
 import io.thingshub.ioc.Service;
 import io.thingshub.service.base.BaseService;

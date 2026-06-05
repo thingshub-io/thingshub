@@ -14,13 +14,13 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
 
-import io.thingshub.commons.utils.ServiceLoaderHelper;
 import io.thingshub.ioc.Component;
 import io.thingshub.ioc.Service;
 import io.thingshub.plugin.Registry;
 import io.thingshub.script.ScriptEngine;
 import io.thingshub.transport.Processor;
 import io.thingshub.transport.Server;
+import io.thingshub.utils.ServiceLoaderHelper;
 import lombok.extern.slf4j.Slf4j;
 
 /**

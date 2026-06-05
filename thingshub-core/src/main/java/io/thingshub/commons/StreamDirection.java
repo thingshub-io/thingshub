@@ -1,4 +1,4 @@
-package io.thingshub.commons.model;
+package io.thingshub.commons;
 
 public enum StreamDirection {
 	UP, DOWN;

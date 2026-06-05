@@ -1,8 +1,8 @@
 package io.thingshub.dashboard.event;
 
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_ALL;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_CHANGE_MESSAGE_AUTHORIZATION;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_CHANGE_MESSAGE_AUTHORIZATION;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_ALL;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_CHANGE_MESSAGE_AUTHORIZATION;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_CHANGE_MESSAGE_AUTHORIZATION;
 
 import java.util.Calendar;
 import java.util.HashMap;

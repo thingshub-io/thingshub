@@ -1,9 +1,9 @@
 package io.thingshub.transport.tcp.processor;
 
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_POST;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_PROPERTY_POST;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_EVENT_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_PROPERTY_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_POST;
 import static java.util.Optional.ofNullable;
 
 import java.nio.charset.StandardCharsets;
@@ -18,7 +18,7 @@ import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Maps;
 
 import cn.hutool.core.date.DateUtil;
-import io.thingshub.commons.model.MessageType;
+import io.thingshub.commons.MessageType;
 import io.thingshub.entity.MessageDefinition;
 import io.thingshub.entity.Publication;
 import io.thingshub.service.MessageDefinitionService;

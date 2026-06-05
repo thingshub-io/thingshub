@@ -5,7 +5,7 @@ import java.util.List;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-import io.thingshub.commons.model.PageParams;
+import io.thingshub.commons.PageParams;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

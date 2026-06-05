@@ -1,16 +1,16 @@
 package io.thingshub.transport;
 
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION_ACK;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_PRODUCT_BINDING;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_DEVICE_INFO_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_DEVICE_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_MESSAGE_DEFINITION_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_PRODUCT_BINDING_REPLY;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO_ACK;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE_ACK;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_MESSAGE_DEFINITION_ACK;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_PRODUCT_BINDING;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_DEVICE_INFO_REPLY;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_DEVICE_REPLY;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_MESSAGE_DEFINITION_REPLY;
+import static io.thingshub.commons.ThingshubConstants.SERVICE_CLIENT_INTERNAL_TOPIC_QUERY_PRODUCT_BINDING_REPLY;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -32,13 +32,13 @@ import com.google.common.collect.Maps;
 
 import cn.hutool.core.date.DateUtil;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.DataTypeSpecs;
-import io.thingshub.commons.model.MessageParameter;
-import io.thingshub.commons.model.MessageResult;
-import io.thingshub.commons.model.MessageSpec;
-import io.thingshub.commons.model.MessageType;
-import io.thingshub.commons.model.Page;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.DataTypeSpecs;
+import io.thingshub.commons.MessageParameter;
+import io.thingshub.commons.MessageResult;
+import io.thingshub.commons.MessageSpec;
+import io.thingshub.commons.MessageType;
+import io.thingshub.commons.Page;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.MessageDefinition;

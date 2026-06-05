@@ -17,11 +17,7 @@
 		<maven.build.timestamp.format>yyyy</maven.build.timestamp.format>
 	</properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>thingshub-commons</artifactId>
-		</dependency>		
+	<dependencies>		
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>thingshub-core</artifactId>
@@ -96,8 +92,8 @@
 							<appendAssemblyId>true</appendAssemblyId>
 		                    <tarLongFileMode>posix</tarLongFileMode>
 							<descriptors>
-								<descriptor>assembly/assembly-standalone.xml</descriptor>
-								<descriptor>assembly/assembly-standalone-windows.xml</descriptor>
+								<descriptor>assembly/assembly-linux.xml</descriptor>
+								<descriptor>assembly/assembly-windows.xml</descriptor>
 							</descriptors>
 						</configuration>		
 					</execution>

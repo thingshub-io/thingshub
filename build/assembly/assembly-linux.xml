@@ -2,10 +2,11 @@
 <assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
-	<id>standalone-windows</id>
+	<id>linux</id>
 	<formats>
-		<format>zip</format>
+		<format>tar.gz</format>
 	</formats>
+
 	<includeBaseDirectory>true</includeBaseDirectory>
 	<files>
 		<file>
@@ -17,20 +18,20 @@
 			<outputDirectory>etc</outputDirectory>
 		</file>
 		<file>
-			<source>${project.parent.basedir}/thingshub-starter/src/main/resources/config.yaml</source>
+			<source>${project.basedir}/../thingshub-starter/src/main/resources/config.yaml</source>
 			<outputDirectory>etc</outputDirectory>
 		</file>
 		<file>
-			<source>${project.parent.basedir}/thingshub-starter/src/main/resources/logback.xml</source>
+			<source>${project.basedir}/../thingshub-starter/src/main/resources/logback.xml</source>
 			<outputDirectory>etc</outputDirectory>
 		</file>
 	</files>
 	<fileSets>
 		<fileSet>
-			<lineEnding>windows</lineEnding>
+			<lineEnding>unix</lineEnding>
 			<fileMode>0755</fileMode>
 			<includes>
-				<include>bin/*.bat</include>
+				<include>bin/*.sh</include>
 			</includes>
 		</fileSet>
 		<fileSet>
@@ -62,7 +63,6 @@
 		<dependencySet>
 			<outputDirectory>lib</outputDirectory>
 			<excludes>
-				<exclude>${project.groupId}:thingshub-commons</exclude>
 				<exclude>${project.groupId}:thingshub-core</exclude>
 				<exclude>${project.groupId}:thingshub-transport-mqtt</exclude>
 				<exclude>${project.groupId}:thingshub-transport-http</exclude>

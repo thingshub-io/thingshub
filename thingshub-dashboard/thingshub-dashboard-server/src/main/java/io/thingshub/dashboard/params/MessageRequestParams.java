@@ -1,6 +1,6 @@
 package io.thingshub.dashboard.params;
 
-import io.thingshub.commons.model.PageParams;
+import io.thingshub.commons.PageParams;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

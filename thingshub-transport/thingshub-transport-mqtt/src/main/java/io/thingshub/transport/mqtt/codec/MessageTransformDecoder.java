@@ -20,7 +20,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.StreamDirection;
+import io.thingshub.commons.StreamDirection;
 import io.thingshub.ioc.Component;
 import io.thingshub.script.ScriptEngine;
 import io.thingshub.script.ScriptEngineFactory;

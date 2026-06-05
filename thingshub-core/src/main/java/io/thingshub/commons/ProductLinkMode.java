@@ -1,4 +1,4 @@
-package io.thingshub.commons.model;
+package io.thingshub.commons;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;

@@ -1,4 +1,4 @@
-package io.thingshub.commons.utils;
+package io.thingshub.utils;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;

@@ -16,7 +16,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.StreamDirection;
+import io.thingshub.commons.StreamDirection;
 import io.thingshub.ioc.Component;
 import io.thingshub.script.ScriptEngine;
 import io.thingshub.script.ScriptEngineFactory;

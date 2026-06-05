@@ -5,7 +5,7 @@ import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.CORREL
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.PAYLOAD_FORMAT_INDICATOR;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.RESPONSE_TOPIC;
 import static io.netty.handler.codec.mqtt.MqttProperties.MqttPropertyType.USER_PROPERTY;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_EVENT_POST;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.charset.StandardCharsets;

@@ -1,6 +1,6 @@
 package io.thingshub.dashboard.event;
 
-import io.thingshub.commons.model.MessageSpec;
+import io.thingshub.commons.MessageSpec;
 import io.thingshub.event.ApplicationEvent;
 import lombok.Getter;
 

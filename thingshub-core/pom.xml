@@ -143,10 +143,9 @@
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
 		</dependency>
-		
 		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>thingshub-commons</artifactId>
+			<groupId>ch.hsr</groupId>
+			<artifactId>geohash</artifactId>
 		</dependency>
 	</dependencies>
 

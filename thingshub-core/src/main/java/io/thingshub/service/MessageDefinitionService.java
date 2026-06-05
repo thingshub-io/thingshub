@@ -9,8 +9,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import cn.hutool.db.sql.Condition;
+import io.thingshub.commons.MessageType;
 import io.thingshub.commons.ServiceException;
-import io.thingshub.commons.model.MessageType;
 import io.thingshub.entity.MessageDefinition;
 import io.thingshub.ioc.Service;
 import io.thingshub.service.base.BaseService;

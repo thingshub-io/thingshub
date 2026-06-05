@@ -74,7 +74,6 @@
 	</properties>
 
 	<modules>
-		<module>thingshub-commons</module>
 		<module>thingshub-core</module>
 		<module>thingshub-transport</module>
 		<module>thingshub-connector</module>
@@ -302,11 +301,6 @@
 <!--				<version>${nacos.client.version}</version>-->
 <!--			</dependency>-->
 
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>thingshub-commons</artifactId>
-				<version>${revision}</version>
-			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>thingshub-core</artifactId>

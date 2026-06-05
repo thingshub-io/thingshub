@@ -2,7 +2,7 @@ package io.thingshub.transport;
 
 import java.util.Map;
 
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.ThingshubMessage;
 import lombok.Data;
 
 @Data

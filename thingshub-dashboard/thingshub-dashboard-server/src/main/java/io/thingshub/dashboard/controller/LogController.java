@@ -3,7 +3,7 @@ package io.thingshub.dashboard.controller;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.thingshub.commons.model.Page;
+import io.thingshub.commons.Page;
 import io.thingshub.dashboard.params.LogRequestParams.QueryLogParams;
 import io.thingshub.http.annotation.Controller;
 import io.thingshub.http.annotation.RequestMapping;

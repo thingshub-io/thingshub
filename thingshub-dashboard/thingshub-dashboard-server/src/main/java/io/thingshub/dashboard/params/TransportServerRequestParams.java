@@ -15,7 +15,7 @@ import lombok.Data;
 public class TransportServerRequestParams {
 
 	@Data
-	public static class PrehandleScriptParams {
+	public static class PrehandlerParams {
 
 		/**
 		 * 服务器名称

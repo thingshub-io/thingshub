@@ -41,8 +41,8 @@ import org.apache.ignite.configuration.DataStorageConfiguration;
 
 import cn.hutool.db.sql.Condition;
 import cn.hutool.db.sql.SqlBuilder;
+import io.thingshub.commons.Page;
 import io.thingshub.commons.SysException;
-import io.thingshub.commons.model.Page;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import lombok.Getter;

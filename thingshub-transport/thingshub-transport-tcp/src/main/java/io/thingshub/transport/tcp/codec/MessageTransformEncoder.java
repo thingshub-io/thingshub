@@ -9,7 +9,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.ioc.Component;
 import io.thingshub.script.ScriptEngine;
 import io.thingshub.script.ScriptEngineFactory;

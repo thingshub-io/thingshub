@@ -1,4 +1,4 @@
-package io.thingshub.commons.model;
+package io.thingshub.commons;
 
 import java.io.Serializable;
 import java.util.Map;

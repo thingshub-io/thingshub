@@ -1,7 +1,7 @@
 package io.thingshub.transport.http.interceptor;
 
 import io.thingshub.Broker;
-import io.thingshub.commons.model.ThingshubMessage;
+import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.ScriptInfo;
 import io.thingshub.http.interceptor.Interceptor;

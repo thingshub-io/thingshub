@@ -48,7 +48,7 @@ import io.netty.handler.codec.mqtt.MqttProperties.StringProperty;
 import io.netty.handler.codec.mqtt.MqttProperties.UserProperty;
 import io.netty.handler.ssl.SslHandler;
 import io.thingshub.Broker;
-import io.thingshub.commons.model.StreamDirection;
+import io.thingshub.commons.StreamDirection;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.ScriptInfo;

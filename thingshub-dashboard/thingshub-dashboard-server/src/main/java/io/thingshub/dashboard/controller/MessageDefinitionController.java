@@ -1,14 +1,14 @@
 package io.thingshub.dashboard.controller;
 
-import static io.thingshub.commons.model.ThingshubConstants.THINGSHUB_CLIENT_ID_PLACEHOLDER;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_POST;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_EVENT_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_PROPERTY_POST;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_PROPERTY_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_REPLY;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_POST;
-import static io.thingshub.commons.model.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THINGSHUB_CLIENT_ID_PLACEHOLDER;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_EVENT_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_EVENT_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_PROPERTY_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_PROPERTY_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_CALL;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_FUNCTION_REPLY;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_POST;
+import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUEST_REPLY;
 
 import java.util.Date;
 import java.util.List;
@@ -17,8 +17,8 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import io.thingshub.commons.IdParam;
 import io.thingshub.commons.LongId;
+import io.thingshub.commons.MessageType;
 import io.thingshub.commons.ServiceException;
-import io.thingshub.commons.model.MessageType;
 import io.thingshub.dashboard.params.MessageDefinitionRequestParams.MessageDefinitionFormParams;
 import io.thingshub.dashboard.server.UserContextHolder;
 import io.thingshub.dashboard.server.UserInfo;

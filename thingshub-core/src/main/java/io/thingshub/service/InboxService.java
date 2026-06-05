@@ -18,7 +18,7 @@ import org.apache.ignite.cache.query.Query;
 import com.google.common.collect.Lists;
 
 import cn.hutool.db.sql.Condition;
-import io.thingshub.commons.model.Page;
+import io.thingshub.commons.Page;
 import io.thingshub.entity.Inbox;
 import io.thingshub.ioc.Service;
 import io.thingshub.service.base.BaseService;
