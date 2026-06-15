@@ -49,7 +49,7 @@ if %JAVA_MAJOR_VERSION% LSS 17 (
 )
 
 rem limit used memory 
-set /a MEM_LIMIT = 4*1024*1024
+set /a MEM_LIMIT = 8*1024*1024
 call :total_memory_in_kb MEMORY %MEM_LIMIT%
 
 rem Perf options

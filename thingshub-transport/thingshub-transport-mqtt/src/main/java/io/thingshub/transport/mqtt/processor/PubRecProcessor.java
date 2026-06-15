@@ -57,7 +57,7 @@ public class PubRecProcessor implements Processor<MqttChannelContext, PubRecPack
 				pubRelMsg = new MqttMessage(fixedHeader, varHeader);
 			}
 		} else {
-			deliveryReader.ackDelivery(ctx.getClientId(), deliveryId.longValue());
+			deliveryReader.ackWriting(ctx.getClientId(), deliveryId.longValue());
 			scheduler.cancelTask(ctx.channel().id().asLongText(), packet.getPacketId() + "");
 
 			Integer reasonCodeValue = (Integer) packet.getProperties().get("reasonCode");

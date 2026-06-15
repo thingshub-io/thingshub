@@ -68,6 +68,7 @@ THINGSHUB_JVM_OPTS="-server \
 
 # Heap options
 # In general, heap memory is 70% of total memory, max direct memory is 20% of total memory
+MEM_LIMIT=8*1024*1024*1024
 MEMORY=$(total_memory)
 
 MEMORY_FRACTION=70 # Percentage of total memory to use

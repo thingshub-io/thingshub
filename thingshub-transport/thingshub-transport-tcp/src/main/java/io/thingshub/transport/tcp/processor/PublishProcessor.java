@@ -7,25 +7,22 @@ import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUES
 import static java.util.Optional.ofNullable;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
+import org.apache.ignite.IgniteMessaging;
 import org.slf4j.MDC;
 
 import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Maps;
 
-import cn.hutool.core.date.DateUtil;
 import io.thingshub.commons.MessageType;
 import io.thingshub.entity.MessageDefinition;
-import io.thingshub.entity.Publication;
 import io.thingshub.service.MessageDefinitionService;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.transport.ChannelContextWrapper;
 import io.thingshub.transport.Processor;
+import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
 import io.thingshub.transport.tcp.TcpChannelContext;
 import io.thingshub.transport.tcp.packet.PublishPacket;
@@ -37,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PublishProcessor implements Processor<TcpChannelContext, PublishPacket> {
 
 	@Inject
-	protected PublicationService publicationService;
+	private IgniteMessaging igniteMessaging;
 
 	@Inject
 	protected MessageDefinitionService messageDefinitionService;
@@ -77,10 +74,8 @@ public class PublishProcessor implements Processor<TcpChannelContext, PublishPac
 		case EVENT_POST -> String.format(THING_TOPIC_EVENT_POST, productCode, ctx.getClientId(), msgName);
 		default -> "";
 		};
-		byte[] payloadBytes = (byte[]) TcpChannelContext.pollIncoming(ctx.channel().id().asLongText().concat("_" + msg.getPayload().getId()).concat("_payload"));
 
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.SECOND, ctx.getTenantSettings().getMaxMessageExpiryInterval());
+		byte[] payloadBytes = (byte[]) TcpChannelContext.pollIncoming(ctx.channel().id().asLongText().concat("_" + msg.getPayload().getId()).concat("_payload"));
 
 		long publicationId = idGenerator.nextId();
 		Publication publication = new Publication();
@@ -93,9 +88,7 @@ public class PublishProcessor implements Processor<TcpChannelContext, PublishPac
 		publication.setProps(Maps.newHashMap());
 		publication.setPayload(new String(payloadBytes, StandardCharsets.UTF_8));
 		publication.setStdPayload(JSON.toJSONString(msg.getPayload()));
-		publication.setExpireTime(calendar.getTime());
-		publication.setTimestamp(msg.getPayload().getTime() == null ? System.currentTimeMillis() : DateUtil.parse(msg.getPayload().getTime()).getTime());
-		publicationService.save(publicationId, publication, ctx.getTenantSettings().getMaxMessageExpiryInterval(), TimeUnit.SECONDS);
+		igniteMessaging.send("publication", publication);
 	}
 
 }

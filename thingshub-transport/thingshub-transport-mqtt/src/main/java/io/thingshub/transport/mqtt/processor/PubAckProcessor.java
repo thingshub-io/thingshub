@@ -36,7 +36,7 @@ public class PubAckProcessor implements Processor<MqttChannelContext, PubAckPack
 		if (deliveryId == null) {
 			log.warn("Client send PUBACK packet while packet[id:{}] not found", packet.getPacketId());
 		} else {
-			deliveryReader.ackDelivery(ctx.getClientId(), deliveryId.longValue());
+			deliveryReader.ackWriting(ctx.getClientId(), deliveryId.longValue());
 			scheduler.cancelTask(ctx.getChannelId(), packet.getPacketId() + "");
 
 		}

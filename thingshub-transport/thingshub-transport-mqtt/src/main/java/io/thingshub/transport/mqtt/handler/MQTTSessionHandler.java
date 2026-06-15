@@ -233,10 +233,9 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		}
 
 		idleTimeoutCheckingTask = ctx.executor().scheduleAtFixedRate(this::checkIdleTimout, idleTimeout, idleTimeout, TimeUnit.NANOSECONDS);
-		CompletableFuture<Void> receivingTask = CompletableFuture.runAsync(() -> {
-			deliveryReader.start(clientInfo.clientId(), receiveMaxium, this::onDelivered);
-		}, ctx.executor());
-		mqttChannelContextWrapper.addFgTask(receivingTask);
+		mqttChannelContextWrapper.addFgTask(CompletableFuture.runAsync(() -> {
+			deliveryReader.start(clientInfo.clientId(), receiveMaxium, this::sendDelivery);
+		}, ctx.executor()));
 
 		if (initCallback != null) {
 			Boolean isCallbackSuccess = initCallback.apply(null);
@@ -247,7 +246,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		}
 	}
 
-	private void onDelivered(Delivery delivery) {
+	private void sendDelivery(Delivery delivery) {
 		MqttChannelContext ctx = CHANNEL_CONTEXTS.get(delivery.receiverId());
 		if (ctx == null) {
 			return;
@@ -257,12 +256,15 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 			setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "---", "PUBLISH");
 			log.error("Channel is inactive and sending PUBLISH packet is dropped. Delivery id: {}", delivery.id());
 
+			deliveryReader.requeue(ctx.getClientId(), delivery);
+
 			return;
 		}
 		if (!ctx.channel().isWritable()) {
 			setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "---", "PUBLISH");
 			log.error("Channel is not writable and sending PUBLISH packet is dropped. Delivery id: {}", delivery.id());
 
+			deliveryReader.requeue(ctx.getClientId(), delivery);
 			return;
 		}
 
@@ -290,7 +292,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 					public void operationComplete(ChannelFuture future) throws Exception {
 
 						if (future.isSuccess()) {
-							deliveryReader.ackDelivery(ctx.getClientId(), delivery.id().longValue());
+							deliveryReader.ackWriting(ctx.getClientId(), delivery.id().longValue());
 
 							setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "0", "PUBLISH");
 							log.debug("Send PUBLISH packet successfully. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());

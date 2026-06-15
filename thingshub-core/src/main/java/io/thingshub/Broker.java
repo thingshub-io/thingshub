@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteEvents;
+import org.apache.ignite.IgniteMessaging;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cluster.ClusterGroup;
 import org.apache.ignite.cluster.ClusterState;
@@ -53,7 +54,6 @@ import io.thingshub.ioc.ApplicationRunner;
 import io.thingshub.ioc.Config;
 import io.thingshub.logging.LogIgniteService;
 import io.thingshub.service.TransportServerService;
-import io.thingshub.service.base.BaseService;
 import io.thingshub.service.base.DataRegion;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.transport.Server;
@@ -136,13 +136,14 @@ public class Broker {
 		DataStorageConfiguration storageConfiguration = new DataStorageConfiguration();
 		storageConfiguration.setWalSegmentSize(128 * 1024 * 1024);
 		storageConfiguration.setWriteThrottlingEnabled(true);
-//		storageConfiguration.setStoragePath("/region");// relative to work directory
+		storageConfiguration.setDefaultWarmUpConfiguration(null);// warm up strategy for all data region
 
 		DataRegionConfiguration defaultRegion = new DataRegionConfiguration();
-		defaultRegion.setName(BaseService.DEFAULT_DATA_REGION.name());
-		defaultRegion.setInitialSize(BaseService.DEFAULT_DATA_REGION.initSize());
-		defaultRegion.setMaxSize(BaseService.DEFAULT_DATA_REGION.maxSize());// 20% of total mem
-		defaultRegion.setPersistenceEnabled(BaseService.DEFAULT_DATA_REGION.persistent());
+		defaultRegion.setName(DataStorageConfiguration.DFLT_DATA_REG_DEFAULT_NAME);
+		defaultRegion.setInitialSize(DataStorageConfiguration.DFLT_DATA_REGION_INITIAL_SIZE);
+		defaultRegion.setMaxSize(DataStorageConfiguration.DFLT_DATA_REGION_MAX_SIZE);// 20% of total mem
+		defaultRegion.setPersistenceEnabled(true);
+		defaultRegion.setWarmUpConfiguration(null);// warm up strategy
 		storageConfiguration.setDefaultDataRegionConfiguration(defaultRegion);
 		storageConfiguration.getDefaultDataRegionConfiguration().setCheckpointPageBufferSize(1024L * 1024 * 1024);
 
@@ -183,7 +184,7 @@ public class Broker {
 		igniteCfg.setGridLogger(new Slf4jLogger());
 		igniteCfg.setClientMode(false);
 		igniteCfg.setMetricsLogFrequency(0L);
-		igniteCfg.setIgniteHome(System.getProperty("thingshub.home"));
+		igniteCfg.setIgniteHome(home);
 		igniteCfg.setWorkDirectory(Paths.get(workDir).toAbsolutePath().toString());
 		igniteCfg.setIgniteInstanceName(instanceName);
 		igniteCfg.setUserAttributes(userAttributes);
@@ -234,6 +235,7 @@ public class Broker {
 				binder().requireExplicitBindings();
 				bind(IdGenerator.class).toInstance(new IdGenerator(1L, Long.valueOf(nodeId + "")));// TODO
 				bind(Ignite.class).toInstance(ignite);
+				bind(IgniteMessaging.class).toInstance(ignite.message());
 				configClazzBeanMap.forEach((clazz, config) -> bind(clazz).toInstance(config));
 			}
 

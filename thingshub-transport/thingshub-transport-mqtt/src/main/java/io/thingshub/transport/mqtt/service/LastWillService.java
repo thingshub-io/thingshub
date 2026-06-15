@@ -9,12 +9,13 @@ import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_EVENT_POST;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.ignite.IgniteMessaging;
 
 import com.google.common.collect.Lists;
 
@@ -22,19 +23,18 @@ import cn.hutool.db.sql.Condition;
 import io.netty.handler.codec.mqtt.MqttProperties.UserProperty;
 import io.thingshub.Broker;
 import io.thingshub.entity.GroupSelection;
-import io.thingshub.entity.Publication;
 import io.thingshub.entity.ScriptInfo;
 import io.thingshub.ioc.Service;
 import io.thingshub.script.ScriptEngine;
 import io.thingshub.script.ScriptEngineFactory;
 import io.thingshub.service.GroupSelectionService;
 import io.thingshub.service.GroupSelectionService.GroupSelectionKey;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.ScriptService;
 import io.thingshub.service.base.BaseService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientType;
 import io.thingshub.transport.ConnectionManager;
+import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
 import io.thingshub.transport.SessionManager;
 import jakarta.annotation.PostConstruct;
@@ -61,7 +61,7 @@ public class LastWillService extends BaseService<Long, LastWill> {
 	private ScriptEngineFactory scriptEngineFactory;
 
 	@Inject
-	private PublicationService publicationService;
+	private IgniteMessaging igniteMessaging;
 
 	@Inject
 	private RetainService retainService;
@@ -135,9 +135,6 @@ public class LastWillService extends BaseService<Long, LastWill> {
 							}
 						}
 
-						Calendar calendar = Calendar.getInstance();
-						calendar.add(Calendar.SECOND, lw.getExpiryInterval());
-
 						long publicationId = idGenerator.nextId();
 						Publication publication = new Publication();
 						publication.setId(publicationId);
@@ -149,9 +146,7 @@ public class LastWillService extends BaseService<Long, LastWill> {
 						publication.setProps(props);
 						publication.setPayload(lw.getPayload());
 						publication.setStdPayload(payload);
-						publication.setExpireTime(calendar.getTime());
-						publication.setTimestamp(System.currentTimeMillis());
-						publicationService.save(publicationId, publication, lw.getExpiryInterval(), TimeUnit.SECONDS);
+						igniteMessaging.send("publication", publication);
 
 						if (lw.getRetain()) {
 							if (lw.getPayload() == null || lw.getPayload().length() == 0) {

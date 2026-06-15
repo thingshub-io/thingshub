@@ -8,16 +8,16 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+
+import org.apache.ignite.IgniteMessaging;
 
 import com.alibaba.fastjson2.JSONObject;
 
 import io.thingshub.Broker;
-import io.thingshub.entity.Publication;
 import io.thingshub.event.ApplicationListener;
 import io.thingshub.ioc.Component;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.base.IdGenerator;
+import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
 import jakarta.inject.Inject;
 
@@ -37,7 +37,7 @@ public class MessageAuthorizationListener implements ApplicationListener<Message
 	private IdGenerator idGenerator;
 
 	@Inject
-	private PublicationService publicationService;
+	private IgniteMessaging igniteMessaging;
 
 	@Override
 	public void onApplicationEvent(MessageAuthorizationEvent event) {
@@ -73,9 +73,7 @@ public class MessageAuthorizationListener implements ApplicationListener<Message
 		publication.setProps(props);
 		publication.setPayload(stdMessage.toJSONString());
 		publication.setStdPayload(stdMessage.toJSONString());
-		publication.setExpireTime(calendar.getTime());
-		publication.setTimestamp(System.currentTimeMillis());
-		publicationService.save(publicationId, publication, 120, TimeUnit.SECONDS);
+		igniteMessaging.send("publication", publication);
 	}
 
 }

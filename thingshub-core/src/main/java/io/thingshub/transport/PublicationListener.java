@@ -20,10 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.apache.ignite.IgniteMessaging;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
@@ -42,14 +45,12 @@ import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.MessageDefinition;
-import io.thingshub.entity.Publication;
 import io.thingshub.entity.ServiceClient;
 import io.thingshub.entity.Session;
 import io.thingshub.ioc.Component;
 import io.thingshub.service.DeviceService;
 import io.thingshub.service.InboxService;
 import io.thingshub.service.MessageDefinitionService;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.ServiceClientService;
 import io.thingshub.service.ThingModelService;
 import io.thingshub.service.base.IdGenerator;
@@ -62,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * <p>
- * Distribute published message to matched subscribers
+ * listen received message by each node and dispatch to matched subscribers
  * </p>
  *
  * @author albert pi
@@ -71,12 +72,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class PublicationDistributor {
+public class PublicationListener {
 
 	private final Map<String, Consumer<Publication>> internal_request_handlers = Maps.newHashMap();
-
-	@Inject
-	private PublicationService publicationService;
 
 	@Inject
 	private ServiceClientService serviceClientService;
@@ -105,6 +103,9 @@ public class PublicationDistributor {
 	@Inject
 	private IdGenerator idGenerator;
 
+	@Inject
+	private IgniteMessaging igniteMessaging;
+
 	@PostConstruct
 	public void init() {
 		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_PRODUCT_BINDING, this::handleProductBingdingQuery);
@@ -112,95 +113,70 @@ public class PublicationDistributor {
 		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_QUERY_DEVICE, this::handleDeviceQuery);
 		internal_request_handlers.put(SERVICE_CLIENT_INTERNAL_MESSAGE_DEVICE_INFO, this::handleDeviceInfo);
 
-		publicationService.listen((eventType, publication) -> {
-			switch (eventType) {
-			case CREATED -> {
-				String messageName = publication.getStdTopic().substring(publication.getStdTopic().lastIndexOf("/") + 1);
-				Consumer<Publication> internalRequestHandler = internal_request_handlers.get(messageName);
+		igniteMessaging.localListen("publication", (UUID uuid, Object o) -> {
+			Publication publication = (Publication) o;
+			String messageName = publication.getStdTopic().substring(publication.getStdTopic().lastIndexOf("/") + 1);
+			Consumer<Publication> internalRequestHandler = internal_request_handlers.get(messageName);
 
-				if (internalRequestHandler != null) {
-					internalRequestHandler.accept(publication);
-				} else {
-					Set<MatchedSubscriber> matchedSubscribers = subscriptionManager.match(publication.getStdTopic());
-					matchedSubscribers.stream().filter(s -> {
-						return !s.getSubscriberId().equals(publication.getClientId())
-								|| (s.getSubscriberId().equals(publication.getClientId()) && Boolean.FALSE.equals(s.getProps().get("noLocal")));
-					}).collect(Collectors.groupingBy(s -> Optional.ofNullable(s.getGroup()).orElse(s.getSubscriberId()))).forEach((grp, subs) -> {
-						Integer qos = (Integer) publication.getProps().get("qos");
-						MatchedSubscriber selectedSubscriber = null;
+			if (internalRequestHandler != null) {
+				internalRequestHandler.accept(publication);
+			} else {
+				Set<MatchedSubscriber> matchedSubscribers = subscriptionManager.match(publication.getStdTopic());
+				matchedSubscribers.stream().filter(s -> {
+					return !s.getSubscriberId().equals(publication.getClientId())
+							|| (s.getSubscriberId().equals(publication.getClientId()) && Boolean.FALSE.equals(s.getProps().get("noLocal")));
+				}).collect(Collectors.groupingBy(s -> Optional.ofNullable(s.getGroup()).orElse(s.getSubscriberId()))).forEach((grp, subs) -> {
+					Integer qos = (Integer) publication.getProps().get("qos");
+					MatchedSubscriber selectedSubscriber = null;
 
-						List<MatchedSubscriber> onlineSubscriptions = subs.stream().filter(match -> connectionManager.isOnline(match.getSubscriberId())).toList();
-						if (onlineSubscriptions.size() > 0) {
-							int index = ThreadLocalRandom.current().nextInt(onlineSubscriptions.size());
-							selectedSubscriber = onlineSubscriptions.get(index);
-						} else {
-							if (qos != null && qos.intValue() > 0) {
-								int index = ThreadLocalRandom.current().nextInt(subs.size());
-								selectedSubscriber = subs.get(index);
-							}
+					List<MatchedSubscriber> onlineSubscriptions = subs.stream().filter(match -> connectionManager.isOnline(match.getSubscriberId())).toList();
+					if (onlineSubscriptions.size() > 0) {
+						int index = ThreadLocalRandom.current().nextInt(onlineSubscriptions.size());
+						selectedSubscriber = onlineSubscriptions.get(index);
+					} else {
+						if (qos != null && qos.intValue() > 0) {
+							int index = ThreadLocalRandom.current().nextInt(subs.size());
+							selectedSubscriber = subs.get(index);
+						}
+					}
+
+					if (selectedSubscriber != null) {
+						Session sessionOfSuscriber = sessionManager.getClientSession(selectedSubscriber.getSubscriberId());
+						if (sessionOfSuscriber == null) {// 极端情况导致的订阅脏数据
+							return;
 						}
 
-						if (selectedSubscriber != null) {
-							Session sessionOfSuscriber = sessionManager.getClientSession(selectedSubscriber.getSubscriberId());
-							if (sessionOfSuscriber == null) {// 极端情况导致的订阅脏数据
-								return;
+						log.debug("Selected subscriber. subscriber id: {}", selectedSubscriber.getSubscriberId());
+
+						if (subscriptionManager.confirmMessageReceiver(publication.getId(), grp, selectedSubscriber.getSubscriberId())) {
+							long deliveryId = idGenerator.nextId();
+
+							log.debug("Subscriber {} received delivery: {}", selectedSubscriber.getSubscriberId(), deliveryId);
+
+							Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId()).recProps(selectedSubscriber.getProps())
+									.senderId(publication.getClientId()).sendProps(publication.getProps()).topic(publication.getTopic()).payload(publication.getStdPayload())
+									.deliverySource(DeliverySource.of(publication.getPubWay())).deliverTime(new Date()).build();
+
+							// session is persistent and client is offline
+							if (sessionOfSuscriber.getExpireTime() != null) {
+								long deliveryExpiryInterval = Duration.ofMillis(sessionOfSuscriber.getExpireTime().getTime() - System.currentTimeMillis()).toSeconds();
+								inboxService.deliver(delivery, deliveryExpiryInterval, TimeUnit.SECONDS);
 							}
-
-							log.debug("Selected subscriber. subscriber id: {}", selectedSubscriber.getSubscriberId());
-
-							if (subscriptionManager.confirmMessageReceiver(publication.getId(), grp, selectedSubscriber.getSubscriberId())) {
-								long deliveryId = idGenerator.nextId();
-
-								Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId()).recProps(selectedSubscriber.getProps())
-										.senderId(publication.getClientId()).sendProps(publication.getProps()).topic(publication.getTopic()).payload(publication.getStdPayload())
-										.deliverySource(DeliverySource.of(publication.getPubWay())).deliverTime(new Date()).build();
-
-								// session is persistent and client is offline
-								if (sessionOfSuscriber.getExpireTime() != null) {
-									long deliveryExpiryInterval = Duration.ofMillis(sessionOfSuscriber.getExpireTime().getTime() - System.currentTimeMillis()).toSeconds();
-									inboxService.deliver(delivery, deliveryExpiryInterval, TimeUnit.SECONDS);
-								}
-								// session is persistent and client is online
-								else if (sessionOfSuscriber.getExpiryInterval() != null && sessionOfSuscriber.getExpiryInterval().intValue() > 0) {
-									inboxService.deliver(delivery, sessionOfSuscriber.getExpiryInterval().longValue(), TimeUnit.SECONDS);
-								}
-								// session is transient and client is online
-								else {
-									inboxService.deliver(delivery, TenantSettings.DFT_MAX_SESSION_EXPIRY_INTERVAL, TimeUnit.SECONDS);
-								}
+							// session is persistent and client is online
+							else if (sessionOfSuscriber.getExpiryInterval() != null && sessionOfSuscriber.getExpiryInterval().intValue() > 0) {
+								inboxService.deliver(delivery, sessionOfSuscriber.getExpiryInterval().longValue(), TimeUnit.SECONDS);
+							}
+							// session is transient and client is online
+							else {
+								inboxService.deliver(delivery, TenantSettings.DFT_MAX_SESSION_EXPIRY_INTERVAL, TimeUnit.SECONDS);
 							}
 						}
-					});
-				}
+					}
+				});
 			}
-			default -> {
-			}
-			}
+
+			return true;
 		});
-	}
-
-	private void createPublication4Reply(String topic, ThingshubMessage payload, Date expiredAt) {
-		String strPayload = JSON.toJSONString(payload);
-
-		Map<String, Object> props = Maps.newHashMap();
-		props.put("qos", 2);
-
-		long messageExpiryInterval = Duration.ofMillis(expiredAt.getTime() - System.currentTimeMillis()).toSeconds();
-
-		long publicationId = idGenerator.nextId();
-		Publication publication = new Publication();
-		publication.setId(publicationId);
-		publication.setUsername("sys");
-		publication.setClientId(Broker.getConsistentId());
-		publication.setPubWay(PublishWay.PUBLISH.value());
-		publication.setTopic(topic);
-		publication.setStdTopic(topic);
-		publication.setProps(props);
-		publication.setPayload(strPayload);
-		publication.setStdPayload(strPayload);
-		publication.setExpireTime(expiredAt);
-		publication.setTimestamp(System.currentTimeMillis());
-		publicationService.save(publicationId, publication, messageExpiryInterval, TimeUnit.SECONDS);
 	}
 
 	private void handleProductBingdingQuery(Publication publication) {
@@ -225,7 +201,7 @@ public class PublicationDistributor {
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
 		replyMessage.setData(boundProducts);
 
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
+		createPublication4Reply(topic4Reply, replyMessage);
 	}
 
 	private void handleMessageDefinitionQuery(Publication publication) {
@@ -311,7 +287,7 @@ public class PublicationDistributor {
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
 		replyMessage.setData(messageSpecs);
 
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
+		createPublication4Reply(topic4Reply, replyMessage);
 	}
 
 	private void handleDeviceQuery(Publication publication) {
@@ -342,7 +318,7 @@ public class PublicationDistributor {
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
 		replyMessage.setData(devices);
 
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
+		createPublication4Reply(topic4Reply, replyMessage);
 	}
 
 	private void handleDeviceInfo(Publication publication) {
@@ -366,6 +342,27 @@ public class PublicationDistributor {
 		replyMessage.setMessage(MessageResult.SUCCESS.desc());
 		replyMessage.setData(device);
 
-		createPublication4Reply(topic4Reply, replyMessage, publication.getExpireTime());
+		createPublication4Reply(topic4Reply, replyMessage);
 	}
+
+	private void createPublication4Reply(String topic, ThingshubMessage payload) {
+		String strPayload = JSON.toJSONString(payload);
+
+		Map<String, Object> props = Maps.newHashMap();
+		props.put("qos", 2);
+
+		long publicationId = idGenerator.nextId();
+		Publication publication = new Publication();
+		publication.setId(publicationId);
+		publication.setUsername("sys");
+		publication.setClientId(Broker.getConsistentId());
+		publication.setPubWay(PublishWay.PUBLISH.value());
+		publication.setTopic(topic);
+		publication.setStdTopic(topic);
+		publication.setProps(props);
+		publication.setPayload(strPayload);
+		publication.setStdPayload(strPayload);
+		igniteMessaging.send("publication", publication);
+	}
+
 }

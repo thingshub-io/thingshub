@@ -13,11 +13,11 @@ import org.apache.ignite.cache.CacheRebalanceMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cache.PartitionLossPolicy;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 
 import io.thingshub.ioc.Component;
-import io.thingshub.service.base.BaseService;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -51,12 +51,11 @@ public class AclManager {
 		model.addDef("e", "e", "some(where (p.eft == allow)) && !some(where (p.eft == deny))");
 		model.addDef("m", "m", "r.act == p.act && keyMatch(r.obj,p.obj)  && filter(r.sub, p.sub)");
 
-		CacheMode cacheMode = BaseService.DEFAULT_DATA_REGION.local() ? CacheMode.REPLICATED : CacheMode.PARTITIONED;
 		CacheConfiguration<String, Object> configuration = new CacheConfiguration<String, Object>() //
 				.setSqlSchema("THINGSHUB") //
 				.setName("SysAcl") //
-				.setCacheMode(cacheMode) //
-				.setDataRegionName(BaseService.DEFAULT_DATA_REGION.name()) //
+				.setCacheMode(CacheMode.PARTITIONED) //
+				.setDataRegionName(DataStorageConfiguration.DFLT_DATA_REG_DEFAULT_NAME) //
 				.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL) //
 				.setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC) //
 				.setBackups(1) //

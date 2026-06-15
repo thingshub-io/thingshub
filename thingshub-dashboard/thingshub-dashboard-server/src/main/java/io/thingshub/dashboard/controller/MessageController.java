@@ -5,12 +5,9 @@ import java.util.Map;
 
 import io.thingshub.commons.Page;
 import io.thingshub.dashboard.params.MessageRequestParams.QueryDeliveryParams;
-import io.thingshub.dashboard.params.MessageRequestParams.QueryPublicationParams;
-import io.thingshub.entity.Publication;
 import io.thingshub.http.annotation.Controller;
 import io.thingshub.http.annotation.RequestMapping;
 import io.thingshub.service.InboxService;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.model.Delivery;
 import jakarta.inject.Inject;
 
@@ -27,17 +24,7 @@ import jakarta.inject.Inject;
 public class MessageController {
 
 	@Inject
-	private PublicationService publicationService;
-
-	@Inject
 	private InboxService inboxService;
-
-	@RequestMapping(path = "/message/publishing/query")
-	public Page<Publication> queryPublications(QueryPublicationParams params) {
-		Map<String, Object> queryParams = new HashMap<>();
-
-		return publicationService.queryPublications(queryParams, params.getPage(), params.getSize());
-	}
 
 	@RequestMapping(path = "/message/delivery/query")
 	public Page<Delivery> queryDeliveries(QueryDeliveryParams params) {

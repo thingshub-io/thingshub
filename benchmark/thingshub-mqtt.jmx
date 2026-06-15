@@ -16,7 +16,7 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="host" elementType="Argument">
             <stringProp name="Argument.name">host</stringProp>
-            <stringProp name="Argument.value">192.168.3.170</stringProp>
+            <stringProp name="Argument.value">10.40.174.195</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="port" elementType="Argument">
@@ -52,13 +52,13 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="昊易车位锁消息" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="昊易车位锁消息" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">stopthread</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">2000</stringProp>
+        <stringProp name="ThreadGroup.num_threads">1000</stringProp>
         <stringProp name="ThreadGroup.ramp_time">90</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
@@ -100,7 +100,7 @@
         </net.xmeter.samplers.ConnectSampler>
         <hashTree>
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer" enabled="true">
-            <stringProp name="ConstantTimer.delay">${__Random(1000,3000)}</stringProp>
+            <stringProp name="ConstantTimer.delay">${__Random(10,100)}</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
@@ -114,7 +114,7 @@
         </net.xmeter.samplers.SubSampler>
         <hashTree>
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer" enabled="true">
-            <stringProp name="ConstantTimer.delay">${__Random(3000,5000)}</stringProp>
+            <stringProp name="ConstantTimer.delay">${__Random(10,30)}</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
@@ -128,7 +128,7 @@
         </net.xmeter.samplers.SubSampler>
         <hashTree>
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer" enabled="true">
-            <stringProp name="ConstantTimer.delay">${__Random(1000,3000)}</stringProp>
+            <stringProp name="ConstantTimer.delay">${__Random(100,300)}</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
@@ -163,7 +163,7 @@
         </hashTree>
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
-          <stringProp name="LoopController.loops">200</stringProp>
+          <stringProp name="LoopController.loops">1000</stringProp>
         </LoopController>
         <hashTree>
           <net.xmeter.samplers.PubSampler guiclass="net.xmeter.gui.PubSamplerUI" testclass="net.xmeter.samplers.PubSampler" testname="状态上报" enabled="true">
@@ -198,7 +198,7 @@
           </net.xmeter.samplers.PubSampler>
           <hashTree>
             <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer" enabled="true">
-              <stringProp name="ConstantTimer.delay">${__Random(1000,3000)}</stringProp>
+              <stringProp name="ConstantTimer.delay">${__Random(3000,6000)}</stringProp>
             </ConstantTimer>
             <hashTree/>
           </hashTree>

@@ -1,6 +1,5 @@
 package io.thingshub.service.base;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -58,40 +57,6 @@ import lombok.experimental.Accessors;
  */
 
 public abstract class BaseService<K, E> {
-
-	public static final DataRegion DEFAULT_DATA_REGION = new DataRegion() {
-
-		@Override
-		public Class<? extends Annotation> annotationType() {
-			return DataRegion.class;
-		}
-
-		@Override
-		public String name() {
-			return DataStorageConfiguration.DFLT_DATA_REG_DEFAULT_NAME;
-		}
-
-		@Override
-		public long initSize() {
-			return DataStorageConfiguration.DFLT_DATA_REGION_INITIAL_SIZE;
-		}
-
-		@Override
-		public long maxSize() {
-			return DataStorageConfiguration.DFLT_DATA_REGION_MAX_SIZE;
-		}
-
-		@Override
-		public boolean persistent() {
-			return true;
-		}
-
-		@Override
-		public boolean local() {
-			return false;
-		}
-
-	};
 
 	public static enum DeletedStatus {
 		NOT_DELETED(0), DELETED(1);
@@ -183,15 +148,12 @@ public abstract class BaseService<K, E> {
 	@PostConstruct
 	public void initIgniteCache() {
 		DataRegion dataRegion = this.eClazz.getAnnotation(DataRegion.class);
-		if (dataRegion == null) {
-			dataRegion = DEFAULT_DATA_REGION;
-		}
 
 		CacheConfiguration<K, E> cacheConfiguration = new CacheConfiguration<K, E>() //
 				.setSqlSchema("THINGSHUB") //
 				.setName(cacheName) //
-				.setCacheMode(dataRegion.local() ? CacheMode.REPLICATED : CacheMode.PARTITIONED) //
-				.setDataRegionName(dataRegion.name()) //
+				.setCacheMode(CacheMode.PARTITIONED) //
+				.setDataRegionName(dataRegion != null ? dataRegion.name() : DataStorageConfiguration.DFLT_DATA_REG_DEFAULT_NAME) //
 				.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL) //
 				.setWriteSynchronizationMode(getWriteSyncModel()) //
 				.setBackups(getBackups()) //
@@ -302,8 +264,7 @@ public abstract class BaseService<K, E> {
 	}
 
 	public E getOne(List<Condition> conditions) {
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
 		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.build()).setArgs(selectSqlBuilder.getParamValueArray());
 
 		E entity = null;
@@ -323,8 +284,7 @@ public abstract class BaseService<K, E> {
 	}
 
 	public E getOneInLocal(List<Condition> conditions) {
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
 		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.build()).setArgs(selectSqlBuilder.getParamValueArray()).setLocal(true);
 
 		E entity = null;
@@ -395,8 +355,7 @@ public abstract class BaseService<K, E> {
 	}
 
 	public List<E> query(List<Condition> conditions) {
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
 		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.build()).setArgs(selectSqlBuilder.getParamValueArray());
 
 		List<E> entities = Collections.emptyList();
@@ -413,8 +372,7 @@ public abstract class BaseService<K, E> {
 	}
 
 	public List<E> queryInLocal(List<Condition> conditions) {
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
 		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.build()).setArgs(selectSqlBuilder.getParamValueArray()).setLocal(true);
 
 		List<E> entities = Collections.emptyList();
@@ -511,10 +469,8 @@ public abstract class BaseService<K, E> {
 		}
 
 //		conditions.add(new Condition(this.keyCol, ">", startId));
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
-		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.append(" LIMIT ").append(size).toString())
-				.setArgs(selectSqlBuilder.getParamValueArray());
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
+		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.append(" LIMIT ").append(size).toString()).setArgs(selectSqlBuilder.getParamValueArray());
 
 		List<E> entities = Collections.emptyList();
 		int curPageSize = 0;
@@ -545,8 +501,7 @@ public abstract class BaseService<K, E> {
 			}
 		}
 
-		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName)
-				.where(conditions.stream().toArray(Condition[]::new));
+		SqlBuilder selectSqlBuilder = SqlBuilder.create().select(this.cols.stream().toArray(String[]::new)).from(cacheName).where(conditions.stream().toArray(Condition[]::new));
 		SqlFieldsQuery selectQuery = new SqlFieldsQuery(selectSqlBuilder.append(" LIMIT ").append(size).append(" OFFSET ").append((page - 1) * size).build())
 				.setArgs(selectSqlBuilder.getParamValueArray());
 

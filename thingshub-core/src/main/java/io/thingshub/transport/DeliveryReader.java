@@ -53,6 +53,7 @@ public class DeliveryReader {
 						.deliverTime(inbox.getDeliverTime()).build();
 				Pipeline ppl = messagePipelines.get(delivery.receiverId());
 				if (ppl != null) {
+					log.debug("handle {} received delivery: {}", delivery.receiverId(), delivery.id());
 					ppl.attach(delivery);
 				}
 			}
@@ -70,12 +71,19 @@ public class DeliveryReader {
 		messagePipelines.put(clientId, ppl);
 	}
 
-	public void ackDelivery(String clientId, long deliveryId) {
+	public void ackWriting(String clientId, long deliveryId) {
 		inboxService.ackedDelivery(deliveryId);
 
 		Pipeline ppl = messagePipelines.get(clientId);
 		if (ppl != null) {
 			ppl.hookOnAcked(deliveryId);
+		}
+	}
+
+	public void requeue(String clientId, Delivery delivery) {
+		Pipeline ppl = messagePipelines.get(clientId);
+		if (ppl != null) {
+			ppl.attach(delivery);
 		}
 	}
 
@@ -87,6 +95,8 @@ public class DeliveryReader {
 	}
 
 	private class Pipeline {
+
+		private final Sinks.EmitFailureHandler RETRY_NON_SERIALIZED = (signal, failure) -> failure == Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 		private final Sinks.Many<Delivery> deliverySink;
 
@@ -133,28 +143,20 @@ public class DeliveryReader {
 			};
 
 			deliverySink.asFlux().doOnError(t -> log.error("", t)).onErrorResume(t -> Mono.empty()).publishOn(Schedulers.boundedElastic()).subscribeWith(this.subscriber);
-			deliveryFetcher = Flux.interval(Duration.ofMillis(100)) //
+			deliveryFetcher = Flux.interval(Duration.ofMillis(30)) //
 					.filter(s -> shouldFetchMore())//
 					.takeUntil(c -> noMore.get()) //
 					.concatMap(tick -> loadDeliveries())//
 					.doOnNext(item -> {
-						EmitResult result = deliverySink.tryEmitNext(item);
-						if (result.isFailure()) {
-							log.warn("Emitting delivery failed: {}, {}", result.name(), item);
-						} else {
-							pendings.increment();
-						}
+						deliverySink.emitNext(item, RETRY_NON_SERIALIZED);
+						pendings.increment();
 					}).subscribeOn(Schedulers.boundedElastic()).subscribe(result -> {
 					}, error -> log.error("fetch error: ", error));
 		}
 
 		public void attach(Delivery delivery) {
-			EmitResult result = deliverySink.tryEmitNext(delivery);
-			if (result.isFailure()) {
-				log.warn("Attaching delivery failed: {}, {}", result.name(), delivery.id());
-			} else {
-				pendings.increment();
-			}
+			deliverySink.emitNext(delivery, RETRY_NON_SERIALIZED);
+			pendings.increment();
 		}
 
 		private boolean shouldFetchMore() {

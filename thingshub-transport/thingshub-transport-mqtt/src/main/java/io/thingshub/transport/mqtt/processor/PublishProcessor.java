@@ -19,9 +19,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.ignite.IgniteMessaging;
+
 import com.alibaba.fastjson2.JSON;
 
-import cn.hutool.core.date.DateUtil;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.mqtt.MqttFixedHeader;
@@ -38,14 +39,13 @@ import io.thingshub.acl.AclManager;
 import io.thingshub.commons.MessageType;
 import io.thingshub.commons.ThingshubMessage;
 import io.thingshub.entity.MessageDefinition;
-import io.thingshub.entity.Publication;
 import io.thingshub.service.MessageDefinitionService;
-import io.thingshub.service.PublicationService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientType;
 import io.thingshub.subscribe.SubscriptionManager;
 import io.thingshub.transport.DistributeResult;
 import io.thingshub.transport.Processor;
+import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
 import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubRecReasonCode;
@@ -71,9 +71,6 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 	private AclManager aclManager;
 
 	@Inject
-	private PublicationService publicationService;
-
-	@Inject
 	private RetainService retainManager;
 
 	@Inject
@@ -84,6 +81,9 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 
 	@Inject
 	private IdGenerator idGenerator;
+
+	@Inject
+	private IgniteMessaging igniteMessaging;
 
 	public static enum RetainResult {
 		RETAINED, CLEARED, EXCEED_LIMIT, REJECTED, ERROR
@@ -386,12 +386,6 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 			stdTopic = rawTopic;
 		}
 
-		Object expiryInterval = packet.getProperties().get(String.valueOf(PUBLICATION_EXPIRY_INTERVAL.value()));
-		int messageExpiryInterval = Math.min(expiryInterval == null ? Integer.MAX_VALUE : Integer.valueOf(expiryInterval.toString()),
-				ctx.getTenantSettings().getMaxMessageExpiryInterval());
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.SECOND, messageExpiryInterval);
-
 		byte[] rawPayloadBytes = (byte[]) MqttChannelContext.pollIncoming(ctx.channel().id().asLongText().concat("_" + packet.getPacketId()).concat("_payload"));
 
 		long publicationId = idGenerator.nextId();
@@ -405,9 +399,7 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 		publication.setProps(packet.getProperties());
 		publication.setPayload(new String(rawPayloadBytes, StandardCharsets.UTF_8));
 		publication.setStdPayload(JSON.toJSONString(packet.getPayload()));
-		publication.setExpireTime(calendar.getTime());
-		publication.setTimestamp(stdMessage.getTime() == null ? System.currentTimeMillis() : DateUtil.parse(stdMessage.getTime()).getTime());
-		publicationService.save(publicationId, publication, messageExpiryInterval, TimeUnit.SECONDS);
+		igniteMessaging.send("publication", publication);
 
 		if ((Integer) packet.getProperties().get("qos") > 0) {
 			if (!subscriptionManager.hasMatch(stdTopic)) {
