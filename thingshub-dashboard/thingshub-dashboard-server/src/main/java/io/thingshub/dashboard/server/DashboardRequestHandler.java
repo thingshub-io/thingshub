@@ -1,8 +1,12 @@
 package io.thingshub.dashboard.server;
 
-import io.thingshub.ClassPathResource;
+import java.util.Set;
+
+import io.thingshub.Resources;
 import io.thingshub.http.handler.RequestHandler;
+import io.thingshub.http.interceptor.Interceptor;
 import io.thingshub.ioc.Component;
+import jakarta.annotation.PreDestroy;
 import reactor.netty.http.server.HttpServerRoutes;
 
 /**
@@ -42,8 +46,18 @@ public class DashboardRequestHandler extends RequestHandler {
 			} else {
 				path = "/static/index.html";
 			}
-			return response.send(ClassPathResource.readFile(path)).then();
+			return response.send(Resources.readFile(path)).then();
 		});
+	}
+
+	@PreDestroy
+	public void close() {
+		Set<Interceptor> interceptors = this.interceptorChain.getInterceptors();
+		if (interceptors != null) {
+			interceptors.forEach(interceptor -> {
+				interceptor.onDestroy();
+			});
+		}
 	}
 
 }

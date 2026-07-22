@@ -10,7 +10,7 @@ import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttPubReplyMessageVariableHeader;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.thingshub.schedule.Scheduler;
-import io.thingshub.transport.DeliveryReader;
+import io.thingshub.transport.DeliveryProcessor;
 import io.thingshub.transport.Processor;
 import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.handler.v5.MQTT5PubRecReasonCode;
@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PubRecProcessor implements Processor<MqttChannelContext, PubRecPacket> {
 
 	@Inject
-	private DeliveryReader deliveryReader;
+	private DeliveryProcessor deliveryProcessor;
 
 	@Inject
 	private Scheduler scheduler;
@@ -57,7 +57,7 @@ public class PubRecProcessor implements Processor<MqttChannelContext, PubRecPack
 				pubRelMsg = new MqttMessage(fixedHeader, varHeader);
 			}
 		} else {
-			deliveryReader.ackWriting(ctx.getClientId(), deliveryId.longValue());
+			deliveryProcessor.ackWriting(ctx.getClientId(), deliveryId.longValue());
 			scheduler.cancelTask(ctx.channel().id().asLongText(), packet.getPacketId() + "");
 
 			Integer reasonCodeValue = (Integer) packet.getProperties().get("reasonCode");

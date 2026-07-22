@@ -58,7 +58,7 @@ import io.thingshub.subscribe.ClientUnsubscribe;
 import io.thingshub.subscribe.TopicUtils;
 import io.thingshub.transport.ChannelContextWrapper;
 import io.thingshub.transport.ConnectionManager;
-import io.thingshub.transport.DeliveryReader;
+import io.thingshub.transport.DeliveryProcessor;
 import io.thingshub.transport.MessageRouter;
 import io.thingshub.transport.SessionManager;
 import io.thingshub.transport.Transport;
@@ -99,7 +99,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
 	private final SessionManager sessionManager;
 
-	private final DeliveryReader deliveryReader;
+	private final DeliveryProcessor deliveryProcessor;
 
 	private final MessageRouter messageRouter;
 
@@ -190,7 +190,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		this.connectionManager = Broker.getBean(ConnectionManager.class);
 		this.sessionManager = Broker.getBean(SessionManager.class);
 		this.lastWillService = Broker.getBean(LastWillService.class);
-		this.deliveryReader = Broker.getBean(DeliveryReader.class);
+		this.deliveryProcessor = Broker.getBean(DeliveryProcessor.class);
 		this.messageRouter = Broker.getBean(MessageRouter.class);
 		this.idGenerator = Broker.getBean(IdGenerator.class);
 		this.scheduler = Broker.getBean(Scheduler.class);
@@ -234,7 +234,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 
 		idleTimeoutCheckingTask = ctx.executor().scheduleAtFixedRate(this::checkIdleTimout, idleTimeout, idleTimeout, TimeUnit.NANOSECONDS);
 		mqttChannelContextWrapper.addFgTask(CompletableFuture.runAsync(() -> {
-			deliveryReader.start(clientInfo.clientId(), receiveMaxium, this::sendDelivery);
+			deliveryProcessor.start(clientInfo.clientId(), receiveMaxium, this::sendDelivery);
 		}, ctx.executor()));
 
 		if (initCallback != null) {
@@ -256,7 +256,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 			setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "---", "PUBLISH");
 			log.error("Channel is inactive and sending PUBLISH packet is dropped. Delivery id: {}", delivery.id());
 
-			deliveryReader.requeue(ctx.getClientId(), delivery);
+			deliveryProcessor.enqueue(ctx.getClientId(), delivery);
 
 			return;
 		}
@@ -264,7 +264,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 			setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "---", "PUBLISH");
 			log.error("Channel is not writable and sending PUBLISH packet is dropped. Delivery id: {}", delivery.id());
 
-			deliveryReader.requeue(ctx.getClientId(), delivery);
+			deliveryProcessor.enqueue(ctx.getClientId(), delivery);
 			return;
 		}
 
@@ -292,7 +292,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 					public void operationComplete(ChannelFuture future) throws Exception {
 
 						if (future.isSuccess()) {
-							deliveryReader.ackWriting(ctx.getClientId(), delivery.id().longValue());
+							deliveryProcessor.ackWriting(ctx.getClientId(), delivery.id().longValue());
 
 							setLoggerMdc(ctx.getClientId(), ctx.getClientAddr(), StreamDirection.DOWN, "0", "PUBLISH");
 							log.debug("Send PUBLISH packet successfully. Delivery id: {}, QoS: {}", delivery.id(), mqttQos.value());
@@ -437,7 +437,7 @@ public abstract class MQTTSessionHandler extends ChannelDuplexHandler {
 		log.info("Client is inactive");
 		isLeaving = true;
 
-		deliveryReader.stop(clientInfo.clientId());
+		deliveryProcessor.stop(clientInfo.clientId());
 
 		if (idleTimeoutCheckingTask != null) {
 			idleTimeoutCheckingTask.cancel(true);

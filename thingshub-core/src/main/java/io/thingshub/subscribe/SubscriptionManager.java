@@ -6,7 +6,6 @@ import static io.thingshub.commons.ThingshubConstants.THING_TOPIC_SERVICE_REQUES
 import static io.thingshub.subscribe.TopicUtils.DELIMITER;
 import static io.thingshub.subscribe.TopicUtils.UNORDERED_SHARE;
 import static io.thingshub.subscribe.TopicUtils.isTopicMatch;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.charset.Charset;
 import java.util.Date;
@@ -23,13 +22,10 @@ import com.google.common.hash.Funnels;
 import cn.hutool.db.sql.Condition;
 import io.thingshub.commons.MessageType;
 import io.thingshub.entity.Device;
-import io.thingshub.entity.GroupSelection;
 import io.thingshub.entity.MessageDefinition;
 import io.thingshub.entity.Subscription;
 import io.thingshub.ioc.Component;
 import io.thingshub.service.DeviceService;
-import io.thingshub.service.GroupSelectionService;
-import io.thingshub.service.GroupSelectionService.GroupSelectionKey;
 import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.SubscriptionService;
 import io.thingshub.service.SubscriptionService.SubKey;
@@ -70,9 +66,6 @@ public class SubscriptionManager {
 
 	@Inject
 	private SubscriptionService subscriptionService;
-
-	@Inject
-	private GroupSelectionService groupSelectionService;
 
 	public SubscriptionManager() {
 		this.topicTree = new TopicTree<>();
@@ -235,17 +228,6 @@ public class SubscriptionManager {
 		Set<MatchedSubscriber> matchesInGroup = topicTree.match(UNORDERED_SHARE.concat(DELIMITER).concat(group));
 
 		return matchesInGroup.stream().toList();
-	}
-
-	public boolean confirmMessageReceiver(Long publicationId, String group, String subscriberId) {
-		GroupSelection groupSelection = new GroupSelection();
-		groupSelection.setDataId(publicationId.toString());
-		groupSelection.setGroup(group);
-		groupSelection.setWinner(subscriberId);
-		groupSelection.setCreateTime(new Date());
-		GroupSelectionKey theKey = new GroupSelectionKey(publicationId.toString(), group);
-
-		return groupSelectionService.saveIfAbsent(theKey, groupSelection, 10 * 60, SECONDS);
 	}
 
 	public List<String> getMappedStdTopics(String subscriberId, String topicFilter) {

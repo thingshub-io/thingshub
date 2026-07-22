@@ -2,9 +2,6 @@ package io.thingshub.dashboard.server;
 
 import static io.thingshub.transport.throttler.ORCondition.or;
 
-import java.util.Set;
-
-import io.thingshub.http.interceptor.Interceptor;
 import io.thingshub.transport.Server;
 import io.thingshub.transport.Transport;
 import io.thingshub.transport.throttler.Condition;
@@ -55,8 +52,7 @@ public class DashboardServer implements Server {
 
 	public Mono<DisposableServer> bind() {
 		return Mono.deferContextual(contextView -> {
-			LoopResources loopResources = LoopResources.create("thingshub-" + config.getPort(), 1, Math.max(Runtime.getRuntime().availableProcessors() * 2, 4),
-					true);
+			LoopResources loopResources = LoopResources.create("thingshub-" + config.getPort(), 1, Math.max(Runtime.getRuntime().availableProcessors() * 2, 4), true);
 //			RateLimiter connRateLimiter = RateLimiter.create(config.getConnectRateLimit());
 
 			reactor.netty.http.server.HttpServer httpServer = reactor.netty.http.server.HttpServer.create();
@@ -72,8 +68,7 @@ public class DashboardServer implements Server {
 //			}
 
 			return Mono.just(httpServer.host(config.getHost()).port(config.getPort()).route(requestHandler)
-					.accessLog(config.isAccessLog(),
-							args -> AccessLog.create("[{}] [{}] [{}] [{}]", args.method(), args.uri(), args.status(), args.contentLength()))
+					.accessLog(config.isAccessLog(), args -> AccessLog.create("[{}] [{}] [{}] [{}]", args.method(), args.uri(), args.status(), args.contentLength()))
 					.runOn(loopResources).doOnChannelInit((observer, channel, remoteAddress) -> {
 						Condition rejectCondition = or(DirectMemPressureCondition.INSTANCE, HeapMemPressureCondition.INSTANCE);
 						if (rejectCondition.meet()) {

@@ -19,8 +19,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.ignite.IgniteMessaging;
-
 import com.alibaba.fastjson2.JSON;
 
 import io.netty.channel.ChannelFuture;
@@ -44,6 +42,7 @@ import io.thingshub.service.base.IdGenerator;
 import io.thingshub.service.model.ClientType;
 import io.thingshub.subscribe.SubscriptionManager;
 import io.thingshub.transport.DistributeResult;
+import io.thingshub.transport.MessageDistributor;
 import io.thingshub.transport.Processor;
 import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
@@ -83,7 +82,7 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 	private IdGenerator idGenerator;
 
 	@Inject
-	private IgniteMessaging igniteMessaging;
+	private MessageDistributor messageDistributor;
 
 	public static enum RetainResult {
 		RETAINED, CLEARED, EXCEED_LIMIT, REJECTED, ERROR
@@ -346,7 +345,7 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 	}
 
 	private PubResult doPub(MqttChannelContext ctx, PublishPacket packet) {
-		DistributeResult distResult = distributePublication(ctx, packet);
+		DistributeResult distResult = distribute(ctx, packet);
 		if (!(Boolean) packet.getProperties().get("isRetain")) {
 			return new PubResult(distResult, RetainResult.RETAINED);
 		} else {
@@ -355,7 +354,7 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 		}
 	}
 
-	private DistributeResult distributePublication(MqttChannelContext ctx, PublishPacket packet) {
+	private DistributeResult distribute(MqttChannelContext ctx, PublishPacket packet) {
 		ThingshubMessage stdMessage = packet.getPayload();
 		if (stdMessage == null) {
 			return DistributeResult.OK;
@@ -399,7 +398,7 @@ public class PublishProcessor implements Processor<MqttChannelContext, PublishPa
 		publication.setProps(packet.getProperties());
 		publication.setPayload(new String(rawPayloadBytes, StandardCharsets.UTF_8));
 		publication.setStdPayload(JSON.toJSONString(packet.getPayload()));
-		igniteMessaging.send("publication", publication);
+		messageDistributor.distribute(publication);
 
 		if ((Integer) packet.getProperties().get("qos") > 0) {
 			if (!subscriptionManager.hasMatch(stdTopic)) {

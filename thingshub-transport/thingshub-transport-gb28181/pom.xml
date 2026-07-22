@@ -14,26 +14,10 @@
 	<description>thingshub GB28181 SIP transport</description>
 
 	<dependencies>
-		<!-- 		<dependency> -->
-		<!-- 			<groupId>javax.sip</groupId> -->
-		<!-- 			<artifactId>jain-sip-ri</artifactId> -->
-		<!-- 		</dependency> -->
 		<dependency>
-			<groupId>io.sipstack</groupId>
-			<artifactId>sipstack-netty-codec-sip</artifactId>
-			<version>0.1.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>netty-all</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!--     <dependency> -->
-		<!-- 			<groupId>io.pkts</groupId> -->
-		<!-- 			<artifactId>pkts-sip</artifactId> -->
-		<!-- 			<version>3.0.10</version> -->
-		<!-- 		</dependency> -->
+            <groupId>javax.sip</groupId>
+            <artifactId>jain-sip-ri</artifactId>
+        </dependency>
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>

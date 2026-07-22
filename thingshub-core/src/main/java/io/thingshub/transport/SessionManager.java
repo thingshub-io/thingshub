@@ -33,7 +33,7 @@ public class SessionManager {
 	private SubscriptionManager subscriptionManager;
 
 	@Inject
-	private ConnectionManager connStateManager;
+	private ConnectionManager connectionManager;
 
 	@Inject
 	private IdGenerator idGenerator;
@@ -125,7 +125,7 @@ public class SessionManager {
 	}
 
 	public void handleSessionStateAfterNodeFailure(String nodeId) {
-		connStateManager.cleanConnectionInfoInFailedNode(nodeId);
+		connectionManager.cleanConnectionInfoInFailedNode(nodeId);
 
 		List<Session> sessions = sessionService.queryLiveSessionsInNode(nodeId);
 		sessions.forEach(s -> {

@@ -61,7 +61,6 @@ import javassist.CtMethod;
 import javassist.bytecode.CodeAttribute;
 import javassist.bytecode.LocalVariableAttribute;
 import javassist.bytecode.MethodInfo;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
@@ -90,8 +89,7 @@ public abstract class RequestHandler implements Consumer<HttpServerRoutes> {
 
 	private BiFunction<String, Type, ?> jsonConverter = (json, type) -> JSON.parseObject(json, type);
 
-	@Getter
-	private InterceptorChain interceptorChain;
+	protected InterceptorChain interceptorChain;
 
 	public RequestHandler(String scanBasePackages) {
 		Configuration configuration = new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage(scanBasePackages))

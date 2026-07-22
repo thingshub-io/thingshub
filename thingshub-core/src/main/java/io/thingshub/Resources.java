@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * <p>
- * Class path资源读取
+ * Resource file operation
  * </p>
  *
  * @author albert pi
@@ -20,11 +20,11 @@ import reactor.core.publisher.Mono;
  */
 
 @Slf4j
-public abstract class ClassPathResource {
+public abstract class Resources {
 
 	public static Mono<ByteBuf> readFile(String path) {
 		try {
-			InputStream inputStream = ClassPathResource.class.getResourceAsStream(path);
+			InputStream inputStream = Resources.class.getResourceAsStream(path);
 			BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			byte[] bytes = new byte[1024];

@@ -55,7 +55,7 @@ public class InboxService extends BaseService<Long, Inbox> {
 		return Page.of(result.getCurrent(), result.getSize(), result.getTotal(), deliveries);
 	}
 
-	public List<Delivery> fetchOfflineDeliveries(String subscriberId, Date endTime, int size) {
+	public List<Delivery> fetchDeliveries(String subscriberId, int size) {
 		try {
 			Query<Entry<Long, Inbox>> indexQuery = new IndexQuery<Long, Inbox>(Inbox.class, "rec_status_idx").setCriteria(eq("receiver_id", subscriberId), eq("status", 0)) //
 					.setLimit(size);

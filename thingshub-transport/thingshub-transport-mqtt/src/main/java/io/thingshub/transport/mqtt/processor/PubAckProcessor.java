@@ -1,7 +1,7 @@
 package io.thingshub.transport.mqtt.processor;
 
 import io.thingshub.schedule.Scheduler;
-import io.thingshub.transport.DeliveryReader;
+import io.thingshub.transport.DeliveryProcessor;
 import io.thingshub.transport.Processor;
 import io.thingshub.transport.mqtt.MqttChannelContext;
 import io.thingshub.transport.mqtt.packet.PubAckPacket;
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PubAckProcessor implements Processor<MqttChannelContext, PubAckPacket> {
 
 	@Inject
-	private DeliveryReader deliveryReader;
+	private DeliveryProcessor deliveryProcessor;
 
 	@Inject
 	private Scheduler scheduler;
@@ -36,7 +36,7 @@ public class PubAckProcessor implements Processor<MqttChannelContext, PubAckPack
 		if (deliveryId == null) {
 			log.warn("Client send PUBACK packet while packet[id:{}] not found", packet.getPacketId());
 		} else {
-			deliveryReader.ackWriting(ctx.getClientId(), deliveryId.longValue());
+			deliveryProcessor.ackWriting(ctx.getClientId(), deliveryId.longValue());
 			scheduler.cancelTask(ctx.getChannelId(), packet.getPacketId() + "");
 
 		}

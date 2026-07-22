@@ -26,6 +26,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteAtomicReference;
+import org.apache.ignite.IgniteException;
+import org.apache.ignite.IgniteLock;
 import org.apache.ignite.IgniteMessaging;
 
 import com.alibaba.fastjson2.JSON;
@@ -42,6 +46,7 @@ import io.thingshub.commons.MessageSpec;
 import io.thingshub.commons.MessageType;
 import io.thingshub.commons.Page;
 import io.thingshub.commons.ThingshubMessage;
+import io.thingshub.commons.ThreadPool;
 import io.thingshub.config.TenantSettings;
 import io.thingshub.entity.Device;
 import io.thingshub.entity.MessageDefinition;
@@ -101,10 +106,16 @@ public class PublicationListener {
 	private SessionManager sessionManager;
 
 	@Inject
-	private IdGenerator idGenerator;
+	private DeliveryProcessor deliveryProcessor;
 
 	@Inject
 	private IgniteMessaging igniteMessaging;
+
+	@Inject
+	private Ignite ignite;
+
+	@Inject
+	private IdGenerator idGenerator;
 
 	@PostConstruct
 	public void init() {
@@ -126,17 +137,19 @@ public class PublicationListener {
 					return !s.getSubscriberId().equals(publication.getClientId())
 							|| (s.getSubscriberId().equals(publication.getClientId()) && Boolean.FALSE.equals(s.getProps().get("noLocal")));
 				}).collect(Collectors.groupingBy(s -> Optional.ofNullable(s.getGroup()).orElse(s.getSubscriberId()))).forEach((grp, subs) -> {
-					Integer qos = (Integer) publication.getProps().get("qos");
 					MatchedSubscriber selectedSubscriber = null;
+					boolean isSelectedSubscriberOnline = true;
 
 					List<MatchedSubscriber> onlineSubscriptions = subs.stream().filter(match -> connectionManager.isOnline(match.getSubscriberId())).toList();
 					if (onlineSubscriptions.size() > 0) {
 						int index = ThreadLocalRandom.current().nextInt(onlineSubscriptions.size());
 						selectedSubscriber = onlineSubscriptions.get(index);
 					} else {
+						Integer qos = (Integer) publication.getProps().get("qos");
 						if (qos != null && qos.intValue() > 0) {
 							int index = ThreadLocalRandom.current().nextInt(subs.size());
 							selectedSubscriber = subs.get(index);
+							isSelectedSubscriberOnline = false;
 						}
 					}
 
@@ -146,30 +159,73 @@ public class PublicationListener {
 							return;
 						}
 
-						log.debug("Selected subscriber. subscriber id: {}", selectedSubscriber.getSubscriberId());
+						if (isSelectedSubscriberOnline) {
+							log.debug("Selected online subscriber {} on node {} as candidate to receive publication: {}", selectedSubscriber.getSubscriberId(),
+									Broker.getConsistentId(), publication.getId());
+						} else {
+							log.debug("Selected offline subscriber {} on node {} as candidate to receive publication: {}", selectedSubscriber.getSubscriberId(),
+									Broker.getConsistentId(), publication.getId());
+						}
 
-						if (subscriptionManager.confirmMessageReceiver(publication.getId(), grp, selectedSubscriber.getSubscriberId())) {
-							long deliveryId = idGenerator.nextId();
+						String taskName = grp.concat("_").concat(publication.getId().toString());
+						try {
+							IgniteLock lockHolder = ignite.reentrantLock(taskName, true, true, true);
+							IgniteAtomicReference<Boolean> runningRef = ignite.atomicReference(taskName, false, true);
+							ThreadPool.scheduledExecutor.schedule(() -> {
+								lockHolder.close();
+								runningRef.close();
+							}, 3, TimeUnit.SECONDS);
 
-							log.debug("Subscriber {} received delivery: {}", selectedSubscriber.getSubscriberId(), deliveryId);
+							try {
+								if (lockHolder.tryLock(300, TimeUnit.MILLISECONDS)) {
+									if (runningRef.compareAndSet(false, true)) {
+										if (isSelectedSubscriberOnline) {
+											log.debug("Online subscriber {} on node {} received publication: {}", selectedSubscriber.getSubscriberId(), Broker.getConsistentId(),
+													publication.getId());
 
-							Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId()).recProps(selectedSubscriber.getProps())
-									.senderId(publication.getClientId()).sendProps(publication.getProps()).topic(publication.getTopic()).payload(publication.getStdPayload())
-									.deliverySource(DeliverySource.of(publication.getPubWay())).deliverTime(new Date()).build();
+											long deliveryId = idGenerator.nextId();
+											Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId())
+													.recProps(selectedSubscriber.getProps()).senderId(publication.getClientId()).sendProps(publication.getProps())
+													.topic(publication.getTopic()).payload(publication.getStdPayload()).deliverySource(DeliverySource.of(publication.getPubWay()))
+													.deliverTime(new Date()).build();
 
-							// session is persistent and client is offline
-							if (sessionOfSuscriber.getExpireTime() != null) {
-								long deliveryExpiryInterval = Duration.ofMillis(sessionOfSuscriber.getExpireTime().getTime() - System.currentTimeMillis()).toSeconds();
-								inboxService.deliver(delivery, deliveryExpiryInterval, TimeUnit.SECONDS);
+											deliveryProcessor.enqueue(selectedSubscriber.getSubscriberId(), delivery);
+										} else {
+											log.debug("Offline subscriber {} on node {} received publication: {}", selectedSubscriber.getSubscriberId(), Broker.getConsistentId(),
+													publication.getId());
+
+											long deliveryId = idGenerator.nextId();
+											Delivery delivery = Delivery.builder().id(deliveryId).receiverId(selectedSubscriber.getSubscriberId())
+													.recProps(selectedSubscriber.getProps()).senderId(publication.getClientId()).sendProps(publication.getProps())
+													.topic(publication.getTopic()).payload(publication.getStdPayload()).deliverySource(DeliverySource.of(publication.getPubWay()))
+													.deliverTime(new Date()).build();
+
+											// session is persistent and client is offline
+											if (sessionOfSuscriber.getExpireTime() != null) {
+												long deliveryExpiryInterval = Duration.ofMillis(sessionOfSuscriber.getExpireTime().getTime() - System.currentTimeMillis())
+														.toSeconds();
+												inboxService.deliver(delivery, deliveryExpiryInterval, TimeUnit.SECONDS);
+											}
+											// session is persistent and client is online
+											else if (sessionOfSuscriber.getExpiryInterval() != null && sessionOfSuscriber.getExpiryInterval().intValue() > 0) {
+												inboxService.deliver(delivery, sessionOfSuscriber.getExpiryInterval().longValue(), TimeUnit.SECONDS);
+											}
+											// session is transient and client is online
+											else {
+												inboxService.deliver(delivery, TenantSettings.DFT_MAX_SESSION_EXPIRY_INTERVAL, TimeUnit.SECONDS);
+											}
+										}
+									}
+								}
+							} catch (Exception e) {
+								log.error("", e);
+							} finally {
+								if (lockHolder.isHeldByCurrentThread()) {
+									lockHolder.unlock();
+								}
 							}
-							// session is persistent and client is online
-							else if (sessionOfSuscriber.getExpiryInterval() != null && sessionOfSuscriber.getExpiryInterval().intValue() > 0) {
-								inboxService.deliver(delivery, sessionOfSuscriber.getExpiryInterval().longValue(), TimeUnit.SECONDS);
-							}
-							// session is transient and client is online
-							else {
-								inboxService.deliver(delivery, TenantSettings.DFT_MAX_SESSION_EXPIRY_INTERVAL, TimeUnit.SECONDS);
-							}
+						} catch (IgniteException e) {
+							log.error("", e);
 						}
 					}
 				});

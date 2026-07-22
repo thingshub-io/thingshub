@@ -1,7 +1,6 @@
 package io.thingshub.transport;
 
 import java.time.Duration;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +13,6 @@ import org.reactivestreams.Subscription;
 import io.thingshub.ioc.Component;
 import io.thingshub.service.InboxService;
 import io.thingshub.service.model.Delivery;
-import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
@@ -27,7 +25,7 @@ import reactor.core.scheduler.Schedulers;
 
 /**
  * <p>
- * Fetch offline deliveries or read real-time deliveries from message inbox
+ * Accept real-time deliveries or Fetch offline deliveries from message inbox
  * </p>
  *
  * @author albert pi
@@ -36,35 +34,12 @@ import reactor.core.scheduler.Schedulers;
 
 @Component
 @Slf4j
-public class DeliveryReader {
+public class DeliveryProcessor {
 
 	@Inject
 	private InboxService inboxService;
 
 	private final Map<String, Pipeline> messagePipelines = new ConcurrentHashMap<>();
-
-	@PostConstruct
-	public void init() {
-		inboxService.listen((eventType, inbox) -> {
-			switch (eventType) {
-			case CREATED -> {
-				Delivery delivery = Delivery.builder().id(inbox.getId()).receiverId(inbox.getReceiverId()).recProps(inbox.getRecProps()).senderId(inbox.getSenderId())
-						.sendProps(inbox.getSendProps()).topic(inbox.getTopic()).payload(inbox.getPayload()).deliverySource(DeliverySource.of(inbox.getDeliverySource()))
-						.deliverTime(inbox.getDeliverTime()).build();
-				Pipeline ppl = messagePipelines.get(delivery.receiverId());
-				if (ppl != null) {
-					log.debug("handle {} received delivery: {}", delivery.receiverId(), delivery.id());
-					ppl.attach(delivery);
-				}
-			}
-			case UPDATED -> {
-				// TODO
-			}
-			default -> {
-			}
-			}
-		});
-	}
 
 	public void start(String clientId, int receiveMaximum, Consumer<Delivery> handler) {
 		Pipeline ppl = new Pipeline(clientId, receiveMaximum, handler);
@@ -80,7 +55,7 @@ public class DeliveryReader {
 		}
 	}
 
-	public void requeue(String clientId, Delivery delivery) {
+	public void enqueue(String clientId, Delivery delivery) {
 		Pipeline ppl = messagePipelines.get(clientId);
 		if (ppl != null) {
 			ppl.attach(delivery);
@@ -111,8 +86,6 @@ public class DeliveryReader {
 		private final String clientId;
 
 		private final int receiveMaximum;
-
-		private final Date deliverEndTime = new Date();
 
 		private final BaseSubscriber<Delivery> subscriber;
 
@@ -175,7 +148,7 @@ public class DeliveryReader {
 			if (noMore.get()) {
 				return Flux.empty();
 			} else if (fetching.compareAndSet(false, true)) {
-				List<Delivery> deliveries = inboxService.fetchOfflineDeliveries(clientId, deliverEndTime, 1024);
+				List<Delivery> deliveries = inboxService.fetchDeliveries(clientId, 1024);
 				if (deliveries == null || deliveries.size() == 0) {
 					noMore.set(true);
 					fetching.set(false);

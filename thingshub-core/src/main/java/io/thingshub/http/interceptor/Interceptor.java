@@ -15,4 +15,7 @@ public interface Interceptor {
 	default void afterCompletion(HttpServerRequest request, HttpServerResponse response, Exception ex) throws Exception {
 	}
 
+	default void onDestroy() {
+	}
+
 }

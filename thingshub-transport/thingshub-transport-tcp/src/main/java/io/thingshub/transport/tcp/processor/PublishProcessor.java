@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.ignite.IgniteMessaging;
 import org.slf4j.MDC;
 
 import com.alibaba.fastjson2.JSON;
@@ -21,6 +20,7 @@ import io.thingshub.entity.MessageDefinition;
 import io.thingshub.service.MessageDefinitionService;
 import io.thingshub.service.base.IdGenerator;
 import io.thingshub.transport.ChannelContextWrapper;
+import io.thingshub.transport.MessageDistributor;
 import io.thingshub.transport.Processor;
 import io.thingshub.transport.Publication;
 import io.thingshub.transport.PublishWay;
@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PublishProcessor implements Processor<TcpChannelContext, PublishPacket> {
 
 	@Inject
-	private IgniteMessaging igniteMessaging;
+	private MessageDistributor messageDistributor;
 
 	@Inject
 	protected MessageDefinitionService messageDefinitionService;
@@ -88,7 +88,7 @@ public class PublishProcessor implements Processor<TcpChannelContext, PublishPac
 		publication.setProps(Maps.newHashMap());
 		publication.setPayload(new String(payloadBytes, StandardCharsets.UTF_8));
 		publication.setStdPayload(JSON.toJSONString(msg.getPayload()));
-		igniteMessaging.send("publication", publication);
+		messageDistributor.distribute(publication);
 	}
 
 }
