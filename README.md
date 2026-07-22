@@ -65,17 +65,7 @@ git clone https://github.com/thingshub-io/thingshub thingshub
 
 首先，配置maven toolchains：
 ```
-<toolchain>
-  <type>jdk</type>
-  <provides>
-    <version>1.8</version>
-    <vendor>oracle</vendor>
-  </provides>
-  <configuration>
-    <jdkHome>D:/java8</jdkHome>
-  </configuration>
-</toolchain>
-  
+... 
 <toolchain>
   <type>jdk</type>
   <provides>
@@ -86,6 +76,8 @@ git clone https://github.com/thingshub-io/thingshub thingshub
     <jdkHome>D:/graalvm-jdk-17</jdkHome>
   </configuration>
 </toolchain>
+...
+
 ```
 
 进入项目根目录，执行以下命令:
