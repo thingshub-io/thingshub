@@ -160,29 +160,29 @@ public class RegisterRequestProcessor implements SipRequestProcessor {
 						if (viaHeader != null) {
 							theTransport = viaHeader.getTransport();
 						}
-						sendWithoutTransaction(response);
+//						sendWithoutTransaction(response);
 					}
-					publisher.publishEvent(ServerLifecycleEvent.challenge(this, userId));
+//					publisher.publishEvent(ServerLifecycleEvent.challenge(this, userId));
 					return;
 				}
 
 				AuthResult authResult = authenticator.basicAuth(AuthRequest.builder().clientId(userId).password("").build());
 				if (authResult.resultCode() != ResultCode.OK) {
 					log.warn("authenticate error. user id: {}", userId);
-					ResponseCmd.sendResponse(Response.FORBIDDEN, "Forbidden", evt);
+//					ResponseCmd.sendResponse(Response.FORBIDDEN, "Forbidden", evt);
 					return;
 				}
 
-				List<Header> okHeaderList = getRegisterOkHeaderList(request);
-				ResponseCmd.response(Response.OK).phrase("OK").requestEvent(evt).headers(okHeaderList).send();
-				publisher.publishEvent(ServerLifecycleEvent.register(this, userId, registerInfo));
-				publisher.publishEvent(ServerLifecycleEvent.online(this, userId, sipTransaction));
-
-				processRegisterRequest(evt, request, userId, registerInfo, transaction);
+//				List<Header> okHeaderList = getRegisterOkHeaderList(request);
+//				ResponseCmd.response(Response.OK).phrase("OK").requestEvent(evt).headers(okHeaderList).send();
+//				publisher.publishEvent(ServerLifecycleEvent.register(this, userId, registerInfo));
+//				publisher.publishEvent(ServerLifecycleEvent.online(this, userId, sipTransaction));
+//
+//				processRegisterRequest(evt, request, userId, registerInfo, transaction);
 			}
 
 		} catch (Exception e) {
-			log.error("处理REGISTER请求异常：evt = {}", evt, e);
+//			log.error("处理REGISTER请求异常：evt = {}", evt, e);
 		}
 	}
 
