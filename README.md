@@ -88,7 +88,7 @@ mvn clean package
 
 ### 4.2、启动运行
 
-解压`thingshub-<VERSION>-standalone.tar.gz`文件，你将看到以下目录结构：
+解压`thingshub-<VERSION>-linux.tar.gz`文件，你将看到以下目录结构：
 
 ```
 %THINGSHUB_HOME%
