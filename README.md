@@ -16,7 +16,7 @@ Thingshub提供多种标准协议支持，完全自主实现，不依赖第三�
 	
 Thingshub物联网平台的架构如下图所示：
 
-![Thingshub架构](./thingshub-architecture.jpg)
+![Thingshub架构](./architecture.jpg)
 
 
 ## 3、核心特性
