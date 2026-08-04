@@ -21,26 +21,20 @@ Thingshub物联网平台的架构如下图所示：
 
 ## 3、核心特性
 
-#### 3.1、统一接入
-支持MQTT、TCP、HTTP、GB28181等协议，通过插件机制可实现企业私有协议。通过协议转换脚本可将不同厂商、不同设备的消息以统一数据格式提供给上游业务系统。
-	
-#### 3.2、设备管理
-在产品类别、产品定义、设备和设备分组、物模型、消息模型、协议适配等维度对设备进行统一管理。
-	
-#### 3.3、权限控制
-对上游业务系统按产品、消息名称等维度进行操作控制，对业务系统用户按产品、设备、消息等维度进行访问控制。
-	
-#### 3.4、规则引擎
-自定义规则配置，实现设备告警、场景联动等功能
-	
-#### 3.5、数据桥接
-可通过连接器将数据路由到现有消息中间件或时序数据库，比如Kafka、MQTT、RocketMQ、ClickHouse、Tdengine等
-	
-#### 3.6、系统监控
-
-	
-#### 3.7、系统集成
-通过插件与企业现有平台进行无缝集成
+- **多协议设备接入** — 支持 MQTT v3/v5 (TCP & WebSocket)、自定义 TCP、HTTP、GB28181、ONVIF 协议
+- **消息路由与发布** — 基于主题的发布/订阅、通配符订阅、共享订阅、保留消息、遗嘱消息
+- **协议适配** — 通过可插拔脚本引擎（JavaScript / GraalVM、Python / Jython），支持自定义消息预处理和后处理
+- **设备管理** — 产品目录、设备和设备分组、会话管理、物模型定义与验证、消息定义与权限控制等
+- **管理控制台** — 基于 Vue 3 + TinyPro 的 管理前端
+- **数据桥接** — 支持将设备上报消息桥接到 Kafka、RocketMQ、TDengine、ClickHouse、外部 MQTT Broker
+- **集群与高可用** — 基于 Ignite 实现分布式集群、节点自动发现、故障检测
+- **访问控制 (ACL)** — 基于 jCasbin 的 RBAC 权限模型，支持细粒度操作授权
+- **OTA升级** — 固件包上传、管理和分发
+- **日志管理** — 基于 Lucene 的全文搜索日志，支持按协议分文件记录
+- **监控指标** — 基于 Micrometer 的指标收集，支持连接限流、背压控制、消息去重
+- **MCP服务器** — 支持模型上下文协议 (Model Context Protocol)，可用于 AI 助手集成
+- **规则引擎** — 自定义规则配置，实现设备告警、场景联动等功能
+- **系统集成** — 通过插件与企业现有平台进行无缝集成，比如统一认证、微服务调用等
 
 
 ## 4、快速开始
@@ -123,7 +117,7 @@ mvn clean package
 
 ```
 thingshub
-├── benchmark -- 基准测试脚本
+├── benchmark -- JMeter 测试脚本
 ├── build -- 构建输出
 ├── thingshub-connector -- 连接器
 │   ├── thingshub-connector-clickhouse -- clickhouse连接器
@@ -132,15 +126,15 @@ thingshub
 │   ├── thingshub-connector-rocketmq -- RocketMQ连接器
 │   ├── thingshub-connector-tdengine -- Tdegine连接器
 ├── thingshub-core -- Thingshub核心模块
-├── thingshub-dashboard -- Thingshub控制台管理模块
-├── thingshub-mcp -- Thingshub MCP服务器
-├── thingshub-starter -- Thingshub启动代码
-├── thingshub-transport -- Thingshub标准协议服务器实现
-│   ├── thingshub-transport-gb28181 -- 视频监控国标实现
-│   ├── thingshub-transport-http -- HTTP通信协议实现
-│   ├── thingshub-transport-mqtt -- MQTT通信协议实现
-│   ├── thingshub-transport-onvif -- 视频监控国际标准实现
-│   ├── thingshub-transport-tcp -- TCP通信协议实现
+├── thingshub-dashboard -- 管理控制台
+├── thingshub-mcp --  MCP服务器
+├── thingshub-starter -- 启动入口与配置
+├── thingshub-transport -- 传输协议
+│   ├── thingshub-transport-gb28181 -- GB28181 视频监控协议
+│   ├── thingshub-transport-http -- HTTP 协议
+│   ├── thingshub-transport-mqtt -- MQTT (TCP + WebSocket) 协议
+│   ├── thingshub-transport-onvif -- ONVIF 视频设备协议
+│   ├── thingshub-transport-tcp -- 自定义 TCP 协议
 ```
 
 	
